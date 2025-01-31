@@ -19,8 +19,13 @@
 			// special variable for setting clip space coordinates for
 			// each passed vertex
 			attribute vec4 a_position;
+			attribute vec3 a_color;
+
+			// can talk with fragment shader
+			varying vec3 v_color;
 			void main()
 			{	
+				v_color = a_color;
 				gl_Position=a_position;
 			}		
 		</script>
@@ -33,9 +38,12 @@
 			// vertex shader -> rasterizer -> fragment shader.
 			// Note that the vertex shader is called once per each vertex, the fragment
 			// shader is called for each pixel it has to color!
+
+			// Same as the v_color from the vertex shader
+			varying vec3 v_color;
 			void main()
 			{
-				gl_FragColor = vec4(0,0,1,1); //between 0 and 1 
+				gl_FragColor = vec4(v_color, 1); //between 0 and 1 
 			}
 		</script>
 
@@ -107,10 +115,13 @@
 					// in this case we want to draw a simple triangle thus we define three verticies
 					// with an x and a y. Verticies can hold many other properties like color, depth, 
 					// lighting properties etc and all of that will be stored on buffers
+
+					// Specified z coordinates to for a_position.
 					var positions = [
-					0, 0,
-					0, 0.5,
-					0.7, 0,
+					//	X 		Y 	  Z		R	G	B
+						0, 		0,	  1.0,	1, 	0, 	0,
+						0, 		0.5,  0.0,	0, 	1, 	0,
+						0.7, 	0,	 -1.0,	0, 	0,	1	
 					];
 					//create a position buffer;
 					this.positionBuffer = gl.createBuffer();
@@ -134,10 +145,12 @@
 					// In this case we need to translate a_attribute from glsl over to js and that
 					// is what we do here
 					var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+					var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
 
 					// enabling means telling webgl to open this attribute so that it can start reading from
 					// a buffer
 					gl.enableVertexAttribArray(positionAttributeLocation);
+					gl.enableVertexAttribArray(colorAttributeLocation);
 					//this will repersent a shape. we only want to use buffer data once per shape 
 					//three 2d points
 				
@@ -145,14 +158,27 @@
 				
 				
 					//now we have to specify how to read our vertcies 
-					var size = 2;	// each vertex has an x and a y
+					var size = 3;	// each vertex has an x and a y
 					var type = gl.FLOAT;	// the type is float
 					var normalize = false;	// dont normalize since the range is already in clipspace
-					var stride = 0;		// no stride since the vertex doesnt have multiple properties 
+					var stride = 6 * Float32Array.BYTES_PER_ELEMENT;		// no stride since the vertex doesnt have multiple properties 
 					var offset = 0;		// start at the begining of the buffer
 					// Finally set our attribute
 					gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset) //great quiz or text question
 					
+					// Specifying how a_color should read the buffer
+					// Alternate way of filling the pointer
+					// make sure to acomodate the z coordinate (5->6) in stride, offset of 3 for z
+					// 
+					// Midterm: make sure to know how to read the buffer properly
+					gl.vertexAttribPointer(
+						colorAttributeLocation,
+						3,
+						gl.FLOAT,
+						gl.FALSE,
+						6 * Float32Array.BYTES_PER_ELEMENT,	// Have to specify bytes. In this case a vertex is 5 wide (xy,rbg) float = 4 bytes
+						3 * Float32Array.BYTES_PER_ELEMENT
+					)
 					// we want to draw a triangle which has three verticies
 					var primitiveType = gl.TRIANGLES;
 					var offset = 0;
