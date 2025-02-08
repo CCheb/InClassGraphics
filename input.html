@@ -16,25 +16,35 @@
 		Varying - are way for a vertex shader to pass data to the fragmentShader.
 		-->
 		<script id="2dVertexShader" type="notjs">
+
+		// attribute used for reading buffers
 		attribute vec4 a_position;	
+
 		//We now want to read in Colors
 		attribute vec3 vert_color;
+
 		//However, we want to send the color to
 		//The fragment Shader
 		varying vec3 fragColor;
 		void main()
 		{
 			fragColor = vert_color;
+
+			// Will always be of type vec4
 			gl_Position=a_position;
 		}		
 		</SCRIPT>
 		<script id="2dFragmentShader" type="notjs">
 		//Fragment shaders do not have precision so we have to set it.
 		precision mediump float;
+
+		// Same varying from the vertex shader
 		varying vec3 fragColor;
 		void main()
 		{
 			//gl_FragColor = vec4(0,0,1,1); //Between 0 and 1.
+			
+			// Need to also pass the alpha channel (1)
 			gl_FragColor = vec4(fragColor,1);
 		}
 		</script>
@@ -50,7 +60,7 @@
 					//setup viewport, we want to draw on the same size as the canvas
 					gl.viewport(0,0, gl.canvas.width, gl.canvas.height);
 					//set clear colors this sets our background
-					gl.clearColor(1,1,1,1); //can change to black to make a spooky game
+					gl.clearColor(1,1,1,1); 
 					gl.clear(gl.COLOR_BUFFER_BIT);
 					//values are between 0 and 1 for black and white
 
@@ -59,21 +69,24 @@
 					var vertexShaderSource = document.getElementById("2dVertexShader").text;
 					var fragmentShaderSource = document.getElementById("2dFragmentShader").text;
 
-					// this.webGL. Deleted
+					
 					// grabbing our compiled shaders through the createShader function
 					var vertexShader = this.createShader(gl.VERTEX_SHADER, vertexShaderSource);
 					var fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
 					
-					//link to program //this.program needs to be a class variable for access
+					// With the two shaders now compiled we can now link them together into a
+					// program
+
+					// this.program needs to be a class variable for access
 					// The program takes both compiled shaders and links them together into a 
 					// 'program' It is possible to have more than one program in a webgl application
 					// each having their own vertex and fragment shaders
 					this.program = this.createProgram(vertexShader, fragmentShader);
 
-					//what program to use
+					
 					// Anything before the useProgram function is considered to be initiallization
 					// code. Most of webgl is setting up shop/state. There is little code when it comes to
-					// rendering 
+					// rendering. Now we enable this program and make it the current program to be worked with
 					gl.useProgram(this.program);
 			
 				}
@@ -81,6 +94,9 @@
 				{
 					// type = shader variable (e.g. vertexShader or fragmentShader)
 					// source = text/source code (e.g. vertexShaderSource)
+
+					// Here we are creating the shader variable with appropriate type and
+					// connecting the source code to it
 					var shader = gl.createShader(type);
 					gl.shaderSource(shader,source);
 
@@ -132,12 +148,18 @@
 			constructor()
 			{
 			this.x = 10;
+			// This will create an object that will have a full
+			// webgl program initialized and ready to go. The object doesnt
+			// use any functions here but we need it so that we can get reference of the
+			// program which is local to the WebGL_Interface class
 			this.myWEBGL = new WebGL_Interface();
 			this.myTriangle = [];
 			}
 			
 			keyDown(event)
 			{
+				// event.keyCode is the ASCII value of the char and we convert
+				// that to string in the second event.keyCode
 				console.log("The number of the key pressed:  "+event.keyCode+
 				",the string of the event code: "+String.fromCharCode(event.keyCode));                   
 			}
@@ -170,6 +192,11 @@
 				console.log("You clicked the button");
 			}	
 			
+			// Handles keydown/presses by calling the KeyDown event
+			// This event in particular contains information about the
+			// key that was pressed. The functions inside the statics
+			// are class functions that need to be called by an object!
+			// If you dont use an object you will get an error!
 			static keyD(event)
 			{
 				m.keyDown(event);
@@ -177,6 +204,8 @@
 			
 			static slideH()
 			{
+				// this specifies the object in reference
+				// in this case the slide itself
 				m.slideHandle(this);
 			}
 			
@@ -186,6 +215,8 @@
 			}
 			static menuH()
 			{
+				// this specifies the object in reference
+				// in this case the dropdown menu
 				m.menuHandle(this);
 			}
 			
@@ -212,13 +243,17 @@
 		
 		<button id="myB">Clear Canvas</button>
 		
-		
+		<!--This is a selcetion which allows for a dropdown creation which can then be 
+			referenced in js. In this case we specify a dropdown with 3 options max-->
 		<select id="mySel" size = "3">
 			<option value="Circle">Circle</option>
 			<option value="Square">Square</option>
 			<option value="Triangle">Triangle</option>
 		</select>
 		
+		<!--This creates a slider with a max range of 100 and I can slide in steps of 10
+			The value property sets the initial location of the slide to be in this case in the
+			middle. -->
 		<input id="slide" type="range" min="0" max="100" step="10" value="50"/>
 
 		
@@ -226,17 +261,52 @@
 		
 		</FOOTER>
 		<SCRIPT>
+			// Our global variables 
 			var canvas = document.getElementById("myCanvas");
 			var gl = canvas.getContext("webgl");
 			
 			var m = new main();
 			
+			// Instantiating/initializing the events. The idea is that when these events are triggered
+			// they will perform a callback to a static function in main which will then call the action
+			// function in the main class. 
+
+			// Remember that we are calling static functions so instead of using
+			// m to call them, we use main. All of these statements below define event handlers
+
+			// Since this keydown is defined under window this event will detect key presses for the
+			// entire webpage. notice how we are not passing anything to keyD. When an event listener
+			// gets activated, it will automatically pass the event object which containts information
+			// about the event (e.g. what key was pressed) to the callback function. So there is no need to
+			// pass it manually. This goes for all event listeners
+
+			// The event object contains details about the event, such as which key was pressed, the target element, 
+			// mouse coordinates, etc., and is automatically passed to the callback function.
+
+			// Know that event listeners in js are attached to elements and objects like variables, buttons
+			// windows, slides, etc. What they are attached to defines their scope. For example the mouse event
+			// attached to the canvas will only register when the mouse is clicked INSIDE of the canvas/viewport
 			window.onkeydown = main.keyD;
+
+			// First grab a reference to the slide and then attach an event listener to the reference which makes
+			// is so that when the slide is used the event listener will be activated! onchange = when the slide
+			// is moved call the slideH function
 			var slide = document.getElementById("slide");
 			slide.onchange = main.slideH;
+
+			// Event listener for detecting mouse clicks inside of the canvas
 			canvas.addEventListener("click",main.mouseH);
+
+			// Similar setup to how the slide was implemented. In this case
+			// we want to handle an event when the user clicks on one of the three
+			// options inside of the dropdown
 			var mySel = document.getElementById("mySel");
 			mySel.addEventListener("click", main.menuH);
+
+			// Event listener for when the button is clicked. In this case the canvas
+			// will be cleared when the button is pressed.
+			// Notice the difference in static functions when working with objects created
+			// in the body of the html page.
 			var myB = document.getElementById("myB");
 			myB.addEventListener("click",main.buttonH);
 
