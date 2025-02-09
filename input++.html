@@ -195,6 +195,13 @@
 				var y = -1 + 2*(myCanvas.height - event.clientY)/myCanvas.height;
 				console.log("The click occurred on "+x+","+y);
 			}
+
+			canvasHover(event)
+			{
+				var x = -1 + 2*event.clientX/myCanvas.width;
+				var y = -1 + 2*(myCanvas.height - event.clientY)/myCanvas.height;
+				console.log("The hover occurred on "+x+","+y);
+			}
 		
 			menuHandle(menu)
 			{
@@ -229,6 +236,11 @@
 			static mouseH(event)
 			{
 				m.canvasHandle(event);
+			}
+
+			static mouseHover(event)
+			{
+				m.canvasHover(event);
 			}
 
 			static menuH()
@@ -315,6 +327,12 @@
 
 			// Event listener for detecting mouse clicks inside of the canvas
 			canvas.addEventListener("click",main.mouseH);
+
+			// Here we added another event listener that allows us to constantly track
+			// the mouse movement. Note that there are many ways to implement events. 
+			// One is with event properties like onmousemove or with addEventListener
+			// shown below 
+			canvas.addEventListener("mousemove",main.mouseHover);
 
 			// Similar setup to how the slide was implemented. In this case
 			// we want to handle an event when the user clicks on one of the three
