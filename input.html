@@ -21,14 +21,14 @@
 		attribute vec4 a_position;	
 
 		//We now want to read in Colors
-		attribute vec3 vert_color;
+		attribute vec3 a_color;
 
 		//However, we want to send the color to
 		//The fragment Shader
 		varying vec3 fragColor;
 		void main()
 		{
-			fragColor = vert_color;
+			fragColor = a_color;
 
 			// Will always be of type vec4
 			gl_Position=a_position;
@@ -128,8 +128,6 @@
 					gl.deleteProgram(program);
 				}
 			}
-
-
 		</script>
 
 
@@ -147,8 +145,9 @@
 			// program which is local to the WebGL_Interface class. This approach allows us
 			// to modularize the program
 			this.myWEBGL = new WebGL_Interface();
+			this.program = this.myWEBGL.program;
 			// Not doing anything right now
-			this.myTriangle = [];
+			this.myShapes = [];
 			}
 			
 			// Event handling functions
@@ -182,9 +181,30 @@
 				// These coordinates are still in pixel form and we need to convert
 				// them over to clipspace
 				console.log(realX+","+realY);
-				var x = -1 + 2*event.clientX/myCanvas.width;
-				var y = -1 + 2*(myCanvas.height - event.clientY)/myCanvas.height;
+				var x = -1 + 2*realX/myCanvas.width;
+				var y = -1 + 2*(myCanvas.height - realY)/myCanvas.height;
 				console.log("The click occurred on "+x+","+y);
+				//Checks if last shape drawn is finished
+				if(this.myShapes.length == 0 || this.myShapes[this.myShapes.length-1].isFinished)
+				{
+					var temp = new Shape();
+					temp.addPoint(x,y);
+					this.myShapes.push(temp);
+
+				}
+				else
+				{ //If last shape not finished drawing, point to last shape
+					this.myShapes[this.myShapes.length-1].addPoint(x,y);
+				}
+				//redraw
+				this.renderAll();
+			}
+
+			renderAll()
+			{
+				for(let i = 0; i<this.myShapes.length;i++){
+					this.myShapes[i].render(this.program);
+				}
 			}
 		
 			menuHandle(menu)
@@ -234,9 +254,111 @@
 			}
 		}
 		
-		
+		class Shape{
+				constructor()
+				{
+					this.isFinished =false;
+					this.vertCount = 0;
+					//becomes the buffer for the shape. buffers are 1D arrays that hold values
+					// that an attribute defined in the vertex shader will read and pass over 
+					// in this case we want to draw a simple triangle thus we define three verticies
+					// with an x and a y. Verticies can hold many other properties like color, depth, 
+					// lighting properties etc and all of that will be stored on buffers
+
+					// Specified z coordinates to for a_position.
+					this.positions = [
+						
+					];
+					//create a position buffer;
+					this.positionBuffer = gl.createBuffer();
+					//bind array bufffer
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+					//load the points
+					// numbers in js are always treated as 64-bit but webgl expects 32-bit so we 
+					// need to make that conversion. STATIC_DRAW tells the gpu that the values in the
+					// positions buffer is not going to be changed much which allows it to optimize
+					// ARRAY.BUFFER can be thought of as a 'reference' to position buffer and basically tells
+					// webgl that this is the buffer that we want to currently work with
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+				}
+
+				addPoint(x,y)
+				{
+					this.positions.push(x, y, 0, 1, 0, 0);
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+					//load the points
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					this.vertCount++;
+					if(this.vertCount == 3)
+					{
+						this.isFinished = true;
+					}
+				}
+
+				/*
+				addPoint(x,y,z,r,g,b)
+				{
+					this.positions.push(x, y, z, r, g, b);
+				}
+				*/
+
+				render(program)
+				{
+					//re bind not buffer data. This makes sure the buffer is not modifyed
+					// similar process to setting beginPath() and the strokeStyle in canvas2d
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+					//have to tell webGL how to interprete data
+					
+					// In this case we need to translate a_attribute from glsl over to js and that
+					// is what we do here
+					var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+					var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+
+					// enabling means telling webgl to open this attribute so that it can start reading from
+					// a buffer
+					gl.enableVertexAttribArray(positionAttributeLocation);
+					gl.enableVertexAttribArray(colorAttributeLocation);
+					//this will repersent a shape. we only want to use buffer data once per shape 
+					//three 2d points
+				
+				
+				
+				
+					//now we have to specify how to read our vertcies 
+					var size = 3;	// each vertex has an x and a y
+					var type = gl.FLOAT;	// the type is float
+					var normalize = false;	// dont normalize since the range is already in clipspace
+					var stride = 6 * Float32Array.BYTES_PER_ELEMENT;		// no stride since the vertex doesnt have multiple properties 
+					var offset = 0;		// start at the begining of the buffer
+					// Finally set our attribute
+					gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset) //great quiz or text question
+					
+					// Specifying how a_color should read the buffer
+					// Alternate way of filling the pointer
+					// make sure to acomodate the z coordinate (5->6) in stride, offset of 3 for z
+					// 
+					// Midterm: make sure to know how to read the buffer properly
+					gl.vertexAttribPointer(
+						colorAttributeLocation,
+						3,
+						gl.FLOAT,
+						gl.FALSE,
+						6 * Float32Array.BYTES_PER_ELEMENT,	// Have to specify bytes. In this case a vertex is 5 wide (xy,rbg) float = 4 bytes
+						3 * Float32Array.BYTES_PER_ELEMENT
+					)
+					// we want to draw a triangle which has three verticies
+					var primitiveType = gl.LINE_LOOP;
+					if(this.isFinished){
+						primitiveType = gl.TRIANGLES;
+					}
+					var offset = 0;
+					var count = 3;
+					// last thing we should do in a webgl program
+					gl.drawArrays(primitiveType, offset, this.vertCount);
+				
+				}
+			}
 		</script>
-		
 		
 
 	</Head>
