@@ -145,6 +145,8 @@
 			// program which is local to the WebGL_Interface class. This approach allows us
 			// to modularize the program
 			this.myWEBGL = new WebGL_Interface();
+
+			// For certain webgl actions, the program must be passed as a parameter
 			this.program = this.myWEBGL.program;
 			// Not doing anything right now
 			this.myShapes = [];
@@ -165,6 +167,7 @@
 			console.log("X = "+this.x);
 			}
 	
+			// mouse click event
 			canvasHandle(event)
 			{
 				// rect gets the dimmensions of the canvas relative to the
@@ -181,13 +184,17 @@
 				// These coordinates are still in pixel form and we need to convert
 				// them over to clipspace
 				console.log(realX+","+realY);
-				var x = -1 + 2*realX/myCanvas.width;
-				var y = -1 + 2*(myCanvas.height - realY)/myCanvas.height;
+				var x = -1 + 2 * realX / myCanvas.width;
+				var y = -1 + 2 * (myCanvas.height - realY) / myCanvas.height;
 				console.log("The click occurred on "+x+","+y);
+
 				//Checks if last shape drawn is finished
 				if(this.myShapes.length == 0 || this.myShapes[this.myShapes.length-1].isFinished)
 				{
-					var temp = new Shape();
+					// Draw a new shape with initialized buffer and a couple of variables
+					// Think in the perspective of a shape object and how this program has many
+					// shapes with their own unique positions
+					var temp = new Shape();	// Creates new position array and position buffer
 					temp.addPoint(x,y);
 					this.myShapes.push(temp);
 
@@ -202,7 +209,9 @@
 
 			renderAll()
 			{
-				for(let i = 0; i<this.myShapes.length;i++){
+				// Iterate through every shape and call its render function
+				for(let i = 0; i < this.myShapes.length; i++){
+					// see how we need to pass the program as a parameter!
 					this.myShapes[i].render(this.program);
 				}
 			}
@@ -257,7 +266,9 @@
 		class Shape{
 				constructor()
 				{
-					this.isFinished =false;
+					// Idea is to have multiple shape objects. So when reading this code
+					// think in the perspective of a shape object
+					this.isFinished = false;
 					this.vertCount = 0;
 					//becomes the buffer for the shape. buffers are 1D arrays that hold values
 					// that an attribute defined in the vertex shader will read and pass over 
@@ -265,11 +276,13 @@
 					// with an x and a y. Verticies can hold many other properties like color, depth, 
 					// lighting properties etc and all of that will be stored on buffers
 
-					// Specified z coordinates to for a_position.
+					// Specified z coordinates to for a_position. At first this is empty
+					// but as the clicks increase, positions will become populated
 					this.positions = [
 						
 					];
 					//create a position buffer;
+					// each shape object seems to have their own positionBuffer
 					this.positionBuffer = gl.createBuffer();
 					//bind array bufffer
 					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -279,16 +292,29 @@
 					// positions buffer is not going to be changed much which allows it to optimize
 					// ARRAY.BUFFER can be thought of as a 'reference' to position buffer and basically tells
 					// webgl that this is the buffer that we want to currently work with
+
+					// It seems that we are not passing anything to the buffer since positions is empty.
 					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
 				}
 
 				addPoint(x,y)
 				{
-					this.positions.push(x, y, 0, 1, 0, 0);
+					// x, y, z = 0, r, g, b
+					// pushing the coordinates obtained from the mouse click over to the 
+					// positions array. We also pass in some color values
+					this.positions.push(x, y, 0, Math.random(), Math.random(), Math.random());
 					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-					//load the points
+
+					// load the points from positions over to the buffer
 					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					
+					// Increase the vertCount since we just drew a shape
 					this.vertCount++;
+
+					// we continuosly add verticies by clicking on the canvas and once we click
+					// in three spots positions will have three verticies in which it can now draw 
+					// a triangle! Ideally each shape child (rectangle, circle, triangle etc) will
+					// have its own unique render and addPoint functions.
 					if(this.vertCount == 3)
 					{
 						this.isFinished = true;
@@ -302,6 +328,9 @@
 				}
 				*/
 
+				// Will each shape object have its own attributes? How are the attributes treated
+				// when for each shape we need to redefine and enable them? Is it becase each shape has
+				// its own position array
 				render(program)
 				{
 					//re bind not buffer data. This makes sure the buffer is not modifyed
@@ -310,7 +339,7 @@
 					//have to tell webGL how to interprete data
 					
 					// In this case we need to translate a_attribute from glsl over to js and that
-					// is what we do here
+					// is what we do here. Wouldnt we just do this and the enabling just once?
 					var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
 					var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
 
@@ -347,13 +376,17 @@
 						3 * Float32Array.BYTES_PER_ELEMENT
 					)
 					// we want to draw a triangle which has three verticies
+					// When we dont have three verticies, set the primitiveType to gl.LINE_LOOP
+					// If isFinished is true then that means that we have three vertices, so draw a triangle
 					var primitiveType = gl.LINE_LOOP;
 					if(this.isFinished){
 						primitiveType = gl.TRIANGLES;
 					}
 					var offset = 0;
-					var count = 3;
+					//var count = 3;
 					// last thing we should do in a webgl program
+					// Specify the vertCount instead of the count var. Remmember that vert could be
+					// 1 2 or 3 at most.
 					gl.drawArrays(primitiveType, offset, this.vertCount);
 				
 				}
