@@ -207,6 +207,36 @@
 				this.renderAll();
 			}
 
+			mouseMove(event)
+			{
+				// Idea is to add temporary points to give the illusion of a cursor
+				if(this.myShapes.length != 0 && !this.myShapes[this.myShapes.length-1].isFinished)
+				{
+					var rect = canvas.getBoundingClientRect();
+
+					// clientX and Y combine to form the mouse position
+					// relative to the 0,0 at the very top left of the page
+					// aka the browser window. 
+					var realX = event.clientX - rect.left;
+					var realY = event.clientY - rect.top;
+
+					// These coordinates are still in pixel form and we need to convert
+					// them over to clipspace
+					console.log(realX+","+realY);
+					var x = -1 + 2 * realX / myCanvas.width;
+					var y = -1 + 2 * (myCanvas.height - realY) / myCanvas.height;
+					//console.log("The mouse move occurred on "+x+","+y);
+
+					this.myShapes[this.myShapes.length-1].tempAdd(x,y);
+					// Temp add
+					this.renderAll();
+					// Remove Temp
+					this.myShapes[this.myShapes.length-1].tempRemove();
+
+				}
+				
+			}
+
 			renderAll()
 			{
 				// Iterate through every shape and call its render function
@@ -247,6 +277,11 @@
 			static mouseH(event)
 			{
 				m.canvasHandle(event);
+			}
+
+			static mouseM(event)
+			{
+				m.mouseMove(event);
 			}
 
 			static menuH()
@@ -321,6 +356,33 @@
 					}
 				}
 
+				tempAdd(x,y)
+				{
+					// x, y, z = 0, r, g, b
+					// pushing the coordinates obtained from the mouse click over to the 
+					// positions array. We also pass in some color values
+					this.positions.push(x, y, 0, Math.random(), Math.random(), Math.random());
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					this.vertCount++;
+
+				}
+				tempRemove()
+				{
+					for(let i = 0; i < 6; i++)
+					{
+						this.positions.pop();
+
+					}
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					this.vertCount--;
+				}
+
 				/*
 				addPoint(x,y,z,r,g,b)
 				{
@@ -378,12 +440,15 @@
 					// we want to draw a triangle which has three verticies
 					// When we dont have three verticies, set the primitiveType to gl.LINE_LOOP
 					// If isFinished is true then that means that we have three vertices, so draw a triangle
+					// outline = LINE_LOOP
 					var primitiveType = gl.LINE_LOOP;
-					if(this.isFinished){
+					if(this.isFinished)
+					{
 						primitiveType = gl.TRIANGLES;
 					}
 					var offset = 0;
 					//var count = 3;
+
 					// last thing we should do in a webgl program
 					// Specify the vertCount instead of the count var. Remmember that vert could be
 					// 1 2 or 3 at most.
@@ -445,6 +510,8 @@
 
 			// Event listener for detecting mouse clicks inside of the canvas
 			canvas.addEventListener("click",main.mouseH);
+			// Tracking mouse movement
+			canvas.addEventListener("mousemove",main.mouseM);
 
 			// Similar setup to how the slide was implemented. In this case
 			// we want to handle an event when the user clicks on one of the three

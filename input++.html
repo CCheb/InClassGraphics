@@ -21,14 +21,14 @@
 		attribute vec4 a_position;	
 
 		//We now want to read in Colors
-		attribute vec3 vert_color;
+		attribute vec3 a_color;
 
 		//However, we want to send the color to
 		//The fragment Shader
 		varying vec3 fragColor;
 		void main()
 		{
-			fragColor = vert_color;
+			fragColor = a_color;
 
 			// Will always be of type vec4
 			gl_Position=a_position;
@@ -76,17 +76,11 @@
 					
 					// With the two shaders now compiled we can now link them together into a
 					// program
-
-					// this.program needs to be a class variable for access
-					// The program takes both compiled shaders and links them together into a 
-					// 'program' It is possible to have more than one program in a webgl application
-					// each having their own vertex and fragment shaders
 					this.program = this.createProgram(vertexShader, fragmentShader);
 
 					
 					// Anything before the useProgram function is considered to be initiallization
-					// code. Most of webgl is setting up shop/state. There is little code when it comes to
-					// rendering. Now we enable this program and make it the current program to be worked with
+					// code. Most of webgl is setting up shop/state. 
 					gl.useProgram(this.program);
 			
 				}
@@ -103,8 +97,8 @@
 					// After linking our shader and source together, we can then compile them
 					// Similar process to the C/C++ compile process
 					gl.compileShader(shader);
-					// Always make sure to do some error checking since webgl doesnt like
-					// to talk about them automatically :)
+
+					// Always make sure to do some error checking
 					var success = gl.getShaderParameter(shader,gl.COMPILE_STATUS);
 					if(success){
 						// If everything goes well, return the compiled shader so that it can be
@@ -125,18 +119,15 @@
 					gl.attachShader(program, vs);
 					gl.attachShader(program, fs);
 					gl.linkProgram(program);
-					// Always make sure to do some error checking 
+					
 					var success = gl.getProgramParameter(program,gl.LINK_STATUS);
 					if(success){
-						// if everything goes then return the complete program
 						return program;
 					}
 					console.error(gl.getProgramInfoLog(program));
 					gl.deleteProgram(program);
 				}
 			}
-
-
 		</script>
 
 
@@ -154,8 +145,11 @@
 			// program which is local to the WebGL_Interface class. This approach allows us
 			// to modularize the program
 			this.myWEBGL = new WebGL_Interface();
+
+			// For certain webgl actions, the program must be passed as a parameter
+			this.program = this.myWEBGL.program;
 			// Not doing anything right now
-			this.myTriangle = [];
+			this.myShapes = [];
 			}
 			
 			// Event handling functions
@@ -173,6 +167,7 @@
 			console.log("X = "+this.x);
 			}
 	
+			// mouse click event
 			canvasHandle(event)
 			{
 				// rect gets the dimmensions of the canvas relative to the
@@ -182,25 +177,95 @@
 
 				// clientX and Y combine to form the mouse position
 				// relative to the 0,0 at the very top left of the page
-				// aka the browser window. Since the canvas is slightly offset
-				// we need to subtract the difference to get both the X and Y locations
-				// RELATIVE to the canvas not the browser window.
+				// aka the browser window. 
 				var realX = event.clientX - rect.left;
 				var realY = event.clientY - rect.top;
 
 				// These coordinates are still in pixel form and we need to convert
 				// them over to clipspace
 				console.log(realX+","+realY);
-				var x = -1 + 2*event.clientX/myCanvas.width;
-				var y = -1 + 2*(myCanvas.height - event.clientY)/myCanvas.height;
+				var x = -1 + 2 * realX / myCanvas.width;
+				var y = -1 + 2 * (myCanvas.height - realY) / myCanvas.height;
 				console.log("The click occurred on "+x+","+y);
+
+				//Checks if last shape drawn is finished
+				if(this.myShapes.length == 0 || this.myShapes[this.myShapes.length-1].isFinished)
+				{
+					// Draw a new shape with initialized buffer and a couple of variables
+					// Think in the perspective of a shape object and how this program has many
+					// shapes with their own unique positions
+					var temp = new Shape();	// Creates new position array and position buffer
+					temp.addPoint(x,y);
+					this.myShapes.push(temp);
+
+				}
+				else
+				{ //If last shape not finished drawing, point to last shape
+					this.myShapes[this.myShapes.length-1].addPoint(x,y);
+				}
+				//redraw
+				// Execute once the shape is completed
+				if(this.myShapes[this.myShapes.length-1].isFinished)
+					this.renderAll();
 			}
 
-			canvasHover(event)
+			canvasMove(event)
 			{
-				var x = -1 + 2*event.clientX/myCanvas.width;
-				var y = -1 + 2*(myCanvas.height - event.clientY)/myCanvas.height;
-				console.log("The hover occurred on "+x+","+y);
+				// Run only when there are shapes in myShapes
+				if(this.myShapes.length != 0)
+				{
+					//console.log("Shape Exists!");
+
+					// TODO: put this in a separate function
+					// rect gets the dimmensions of the canvas relative to the
+					// webpage. It recieves important variables like top, left
+					// bottom, width, and height.
+					var rect = canvas.getBoundingClientRect();
+
+					// clientX and Y combine to form the mouse position
+					// relative to the 0,0 at the very top left of the page
+					// aka the browser window. 
+					var realX = event.clientX - rect.left;
+					var realY = event.clientY - rect.top;
+
+					// These coordinates are still in pixel form and we need to convert
+					// them over to clipspace
+					//console.log(realX+","+realY);
+					var x = -1 + 2 * realX / myCanvas.width;
+					var y = -1 + 2 * (myCanvas.height - realY) / myCanvas.height;
+					//console.log("The click occurred on "+x+","+y);
+
+					// Cycle-in this temporary vertex
+					gl.clearColor(1,1,1,1); //can change to black to make a spooky game
+					gl.clear(gl.COLOR_BUFFER_BIT);
+					this.myShapes[this.myShapes.length-1].addTempPoint(x,y);
+					this.renderAll();
+					// Need to pop 6 items == 1 vertex
+					for(let i = 0; i < 6; i++)
+					{
+						this.myShapes[this.myShapes.length-1].positions.pop();
+					}
+					console.log(this.myShapes[this.myShapes.length-1].positions.length);
+					//this.myShapes[this.myShapes.length-1].vertCount--;
+					
+				}
+				else
+				{
+					console.log("Shape doesnt exist!");
+				}
+			}
+
+
+
+
+			renderAll()
+			{
+				// Iterate through every shape and call its render function
+				for(let i = 0; i < this.myShapes.length; i++){
+					// see how we need to pass the program as a parameter!
+					this.myShapes[i].render(this.program);
+				}
+				console.log(this.myShapes.length);
 			}
 		
 			menuHandle(menu)
@@ -218,9 +283,7 @@
 
 			// Handles keydown/presses by calling the KeyDown event
 			// This event in particular contains information about the
-			// key that was pressed. The functions inside the statics
-			// are class functions that need to be called by an object!
-			// If you dont use an object you will get an error!
+			// key that was pressed.
 			static keyD(event)
 			{
 				m.keyDown(event);
@@ -238,9 +301,9 @@
 				m.canvasHandle(event);
 			}
 
-			static mouseHover(event)
+			static mouseM(event)
 			{
-				m.canvasHover(event);
+				m.canvasMove(event);
 			}
 
 			static menuH()
@@ -257,9 +320,156 @@
 			}
 		}
 		
-		
+		class Shape{
+				constructor()
+				{
+					// Idea is to have multiple shape objects. So when reading this code
+					// think in the perspective of a shape object
+					this.isFinished = false;
+					this.vertCount = 0;
+					//becomes the buffer for the shape. buffers are 1D arrays that hold values
+					// that an attribute defined in the vertex shader will read and pass over 
+					// in this case we want to draw a simple triangle thus we define three verticies
+					// with an x and a y. Verticies can hold many other properties like color, depth, 
+					// lighting properties etc and all of that will be stored on buffers
+
+					// Specified z coordinates to for a_position. At first this is empty
+					// but as the clicks increase, positions will become populated
+					this.positions = [
+						
+					];
+					
+					//create a position buffer;
+					// each shape object seems to have their own positionBuffer
+					this.positionBuffer = gl.createBuffer();
+					//bind array bufffer
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+					//load the points
+					// numbers in js are always treated as 64-bit but webgl expects 32-bit so we 
+					// need to make that conversion. STATIC_DRAW tells the gpu that the values in the
+					// positions buffer is not going to be changed much which allows it to optimize
+					// ARRAY.BUFFER can be thought of as a 'reference' to position buffer and basically tells
+					// webgl that this is the buffer that we want to currently work with
+
+					// It seems that we are not passing anything to the buffer since positions is empty.
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+				}
+
+				addPoint(x,y)
+				{
+					// x, y, z = 0, r, g, b
+					// pushing the coordinates obtained from the mouse click over to the 
+					// positions array. We also pass in some color values
+					this.positions.push(x, y, 0, Math.random(), Math.random(), Math.random());
+					//console.log(this.positions.length);
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+					
+					// Increase the vertCount since we just drew a shape
+					this.vertCount++;
+
+					// we continuosly add verticies by clicking on the canvas and once we click
+					// in three spots positions will have three verticies in which it can now draw 
+					// a triangle! Ideally each shape child (rectangle, circle, triangle etc) will
+					// have its own unique render and addPoint functions.
+					if(this.vertCount == 3)
+					{
+						this.isFinished = true;
+					}
+				}
+
+				addTempPoint(x,y)
+				{
+					// same as addPoint but without the vertCount
+					this.positions.push(x, y, 0, 1, 0, 0);
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
+					// load the points from positions over to the buffer
+					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+				}
+
+				/*
+				addPoint(x,y,z,r,g,b)
+				{
+					this.positions.push(x, y, z, r, g, b);
+				}
+				*/
+
+				// Will each shape object have its own attributes? How are the attributes treated
+				// when for each shape we need to redefine and enable them? Is it becase each shape has
+				// its own position array
+				render(program)
+				{
+					//re bind not buffer data. This makes sure the buffer is not modifyed
+					// similar process to setting beginPath() and the strokeStyle in canvas2d
+					gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+					//have to tell webGL how to interprete data
+					
+					// In this case we need to translate a_attribute from glsl over to js and that
+					// is what we do here. Wouldnt we just do this and the enabling just once?
+					var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+					var colorAttributeLocation = gl.getAttribLocation(program, "a_color");
+
+					// enabling means telling webgl to open this attribute so that it can start reading from
+					// a buffer
+					gl.enableVertexAttribArray(positionAttributeLocation);
+					gl.enableVertexAttribArray(colorAttributeLocation);
+					//this will repersent a shape. we only want to use buffer data once per shape 
+					//three 2d points
+				
+				
+				
+				
+					//now we have to specify how to read our vertcies 
+					var size = 3;	// each vertex has an x ,y ,z
+					var type = gl.FLOAT;	// the type is float
+					var normalize = false;	// dont normalize since the range is already in clipspace
+					var stride = 6 * Float32Array.BYTES_PER_ELEMENT;		// no stride since the vertex doesnt have multiple properties 
+					var offset = 0;		// start at the begining of the buffer
+					// Finally set our attribute
+					gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset) //great quiz or text question
+					
+					// Specifying how a_color should read the buffer
+					// Alternate way of filling the pointer
+					// make sure to acomodate the z coordinate (5->6) in stride, offset of 3 for z
+					// 
+					// Midterm: make sure to know how to read the buffer properly
+					gl.vertexAttribPointer(
+						colorAttributeLocation,
+						3,
+						gl.FLOAT,
+						gl.FALSE,
+						6 * Float32Array.BYTES_PER_ELEMENT,	// Have to specify bytes. In this case a vertex is 5 wide (xy,rbg) float = 4 bytes
+						3 * Float32Array.BYTES_PER_ELEMENT
+					)
+					// we want to draw a triangle which has three verticies
+					// When we dont have three verticies, set the primitiveType to gl.LINE_LOOP
+					// If isFinished is true then that means that we have three vertices, so draw a triangle
+					var primitiveType = gl.LINE_LOOP;
+					var offset = 0;
+					if(this.isFinished)
+					{
+						// Only render triangles if the shape is completed!
+						primitiveType = gl.TRIANGLES;
+						gl.drawArrays(primitiveType, offset, this.vertCount);
+					}
+					else
+					{
+						// Add a 1 to consider the temp vertex
+						gl.drawArrays(primitiveType, offset, this.vertCount+1);
+						
+					}
+					//var count = 3;
+					// last thing we should do in a webgl program
+					// Specify the vertCount instead of the count var. Remmember that vert could be
+					// 1 2 or 3 at most.
+					// this.vertCount
+				
+				}
+			}
 		</script>
-		
 		
 
 	</Head>
@@ -304,35 +514,17 @@
 
 			// Remember that we are calling static functions so instead of using
 			// m to call them, we use main. All of these statements below define callback functions
-
-			// Since this keydown is defined under window this event will detect key presses for the
-			// entire webpage. notice how we are not passing anything to keyD. When an callback
-			// gets activated, it will automatically pass the event object which containts information
-			// about the event (e.g. what key was pressed) to the action function. So there is no need to
-			// pass it manually. This goes for all event listeners. It implicitly passes the event over
-
-			// The event object contains details about the event, such as which key was pressed, the target element, 
-			// mouse coordinates, etc., and is automatically passed to the callback function.
-
-			// Know that event listeners in js are attached to elements and objects like variables, buttons
-			// windows, slides, etc. What they are attached to defines their scope. For example the mouse event
-			// attached to the canvas will only register when the mouse is clicked INSIDE of the canvas/viewport
 			window.onkeydown = main.keyD;
 
 			// First grab a reference to the slide and then attach an event listener to the reference which makes
-			// is so that when the slide is used the event listener will be activated! onchange = when the slide
-			// is moved call the slideH function
+			// is so that when the slide is used the event listener will be activated! 
 			var slide = document.getElementById("slide");
 			slide.onchange = main.slideH;
 
 			// Event listener for detecting mouse clicks inside of the canvas
 			canvas.addEventListener("click",main.mouseH);
 
-			// Here we added another event listener that allows us to constantly track
-			// the mouse movement. Note that there are many ways to implement events. 
-			// One is with event properties like onmousemove or with addEventListener
-			// shown below 
-			canvas.addEventListener("mousemove",main.mouseHover);
+			canvas.addEventListener("mousemove", main.mouseM);
 
 			// Similar setup to how the slide was implemented. In this case
 			// we want to handle an event when the user clicks on one of the three
@@ -342,8 +534,6 @@
 
 			// Event listener for when the button is clicked. In this case the canvas
 			// will be cleared when the button is pressed.
-			// Notice the difference in static functions when working with objects created
-			// in the body of the html page.
 			var myB = document.getElementById("myB");
 			myB.addEventListener("click",main.buttonH);
 
