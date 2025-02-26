@@ -55,7 +55,8 @@
 		offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
 		gl.enableVertexAttribArray(colorAttributeLocation);
 		gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
-				
+		
+		// Setting our state variables before we draw
 		var tranLoc  = gl.getUniformLocation(program,'transform');
 		gl.uniform3fv(tranLoc,new Float32Array(this.loc));
 		var thetaLoc = gl.getUniformLocation(program,'rotation');
@@ -102,10 +103,12 @@
 		0,3,4,	//left face
 		3,4,7]
 		this.ibuffer = gl.createBuffer();
+		// For the index array. Order of veticies for rendering our scene
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ibuffer);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint8Array(this.indexOrder),
 		gl.STATIC_DRAW);
 		
+		// Location and rotation
 		this.loc=[0,0,0];
 		this.rot=[0,0,0];
 	 }
@@ -141,6 +144,7 @@
 		
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.ibuffer);
 		
+		// Instead of draw arrays
 		gl.drawElements(gl.TRIANGLES,this.indexOrder.length,gl.UNSIGNED_BYTE,0);
 		 
 	 }

@@ -16,14 +16,15 @@
 		attribute vec4 a_position;	
 		//We now want to read in Colors
 		attribute vec3 vert_color;
+
 		//However, we want to send the color to
 		//The fragment Shader
 		varying vec3 fragColor;
 		
 		//Now we need a uniform.  A uniform is something consistent for all the vertices
 		//in a buffers 
-		uniform vec3 transform; //translate in the case it breaks. More efficient if we use matricies
-		uniform vec3 rotation;		
+		uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
+		uniform vec3 rotation;	// Set until changed
 		
 		//Use a function to position the object. The X, Y, and Z are the vertices to be translated (pos)
 		vec4 PositionObject(vec4 pos)
@@ -41,7 +42,7 @@
 			//This is a nice trick
 			vec3 c = cos(rotation);
 			vec3 s = sin(rotation);
-			fragColor = vert_color;
+			//fragColor = vert_color;
 			//Surprise!  we have to go column firt when we enter the matrix.
 
 			//mat4 rotateX = mat4();
@@ -55,10 +56,15 @@
 		}
 		void main()
 		{
+			fragColor = vert_color;
 			// Rotate first then translate to avoid orbiting
 			gl_Position=PositionObject(RotateObject(a_position));
+
+			// In the case you wanted to create the matricies inside the main()
+			// Alternate version: gl_Position = T*R*S*a_position
 		}		
 		</SCRIPT>
+
 		<script id="2dFragmentShader" type="notjs">
 		//Fragment shaders do not have precision so we have to set it.
 		precision mediump float;
@@ -96,7 +102,7 @@
 			this.myWEBGL = new WebGL_Interface();
 			myWebGL= this.myWEBGL;
 			this.myTriangle = [];
-			this.myTriangle.push(new Triangle2());
+			this.myTriangle.push(new Triangle1());
 			this.name = "My Class";
 
 			}
