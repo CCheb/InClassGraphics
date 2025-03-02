@@ -26,6 +26,7 @@
 		//in buffers. Ideally, we would use mat4 instead of vec3
 		uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
 		uniform vec3 rotation;	// Set until changed
+		uniform vec3 scale;		// Scaling 
 		
 		//Use a function to position the object. The X, Y, and Z are the vertices to be translated (pos)
 		vec4 PositionObject(vec4 pos)
@@ -56,12 +57,22 @@
 			//mat4 rotateZ = mat4();	// Rotation when z=z;
 			return rotateY*pos;
 		}
+
+		vec4 ScaleObject(vec4 pos)
+		{
+			// Scaling matrix
+			mat4 scales = mat4(scale.x,0.0,0.0,0.0,
+							 0.0,scale.y,0.0,0.0,
+							 0.0,0.0,scale.z,0.0,
+							 0.0,0.0,0.0,1.0);
+			return scales * pos;
+		}
 		void main()
 		{
 			fragColor = vert_color;
 			// Rotate first then translate to avoid orbiting
 			// Scaling -> Rotation -> Translation. Know that its from right to left
-			gl_Position=PositionObject(RotateObject(a_position));
+			gl_Position=PositionObject(RotateObject(ScaleObject(a_position)));
 
 			// In the case you wanted to create the matricies inside the main()
 			// Alternate version: gl_Position = T*R*S*a_position
@@ -90,17 +101,43 @@
 		{
 			// Clear -> Update -> Render
 			gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+			
 			for(var i=0; i < m.myTriangle.length; i ++)	
 			{
+				// Idea is to have the shape grow and then shrink
+				// up until a certain point. We use a bool as a switch
+				// If its true then grow, if false then shrink. 
+				if(m.myTriangle[i].sca[0] > 2.0)
+					m.myTriangle[i].isScaling = false;
+
+				if(m.myTriangle[i].sca[0] < 0.2)
+					m.myTriangle[i].isScaling = true;
+
+				if(m.myTriangle[i].isScaling)
+				{
+					m.myTriangle[i].sca[0] += 0.008;
+					m.myTriangle[i].sca[1] += 0.008;
+					m.myTriangle[i].sca[2] += 0.008;
+				}
+				else
+				{
+					m.myTriangle[i].sca[0] -= 0.008;
+					m.myTriangle[i].sca[1] -= 0.008;
+					m.myTriangle[i].sca[2] -= 0.008;
+				}
+
+				
+				
 				// myTriangle[] is similar to myShapes from paint program
 				// we have reference of myTriangle thanks to the m object
-				m.myTriangle[i].rot[1]+= .01; // Constantly updating the rotation so that the object 
+				m.myTriangle[i].rot[1]+= .008; // Constantly updating the rotation so that the object 
 				// appears to be rotating. Positive == cw; Negative == ccw;
 				//m.myTriangle[i].loc[0]+= .001;
 				//m.myTriangle[i].loc[1]+= .001;
 				// Update then render
-				m.myTriangle[i].render(m.myWEBGL.program );
+				m.myTriangle[i].render(m.myWEBGL.program);
 			}
+			
 			requestAnimationFrame(loop);	// Allows us to loop this function every certain amount of frames
 		}
 		
@@ -133,6 +170,7 @@
 				// Set the new triangles location according to the mouse x and y;
 				temp.loc = [x,y,0];
 				temp.rot = [0,0,0];
+				temp.sca = [1,1,1];
 				m.myTriangle.push(temp); 	// Once its pushed it can now be rendered in the loop
 				//temp.render(myWebGL.program);
 			}

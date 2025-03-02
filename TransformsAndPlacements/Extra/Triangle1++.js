@@ -36,6 +36,9 @@
 		// Triangle1 instance. By default the instance will be positioned at the origin.
 		this.loc = [0.0,0.0,0.0];
 		this.rot = [0.0,0.0,0.0]; 	// Rotation will be altered in the render loop
+		this.sca = [1.0,1.0,1.0];
+
+		this.isScaling = true;
 		// We set the rotation here so that on load the front face will show
 	 }
 	 //Again this could be inherited ... but not always...not all objects
@@ -75,6 +78,10 @@
 		gl.uniform3fv(tranLoc,new Float32Array(this.loc));
 		var thetaLoc = gl.getUniformLocation(program,'rotation');
 		gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
+
+		// Setting up or scaling for the object
+		var scale = gl.getUniformLocation(program,"scale");
+		gl.uniform3fv(scale,new Float32Array(this.sca));
 		
 		
 		var primitiveType = gl.TRIANGLES;
