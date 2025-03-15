@@ -16,69 +16,17 @@
 		Varying - are way for a vertex shader to pass data to the fragmentShader.
 		-->
 		<script id="2dVertexShader" type="notjs">
-			// for reading the vertex buffer
-		    attribute vec4 a_position;	
-		    //We now want to read in Colors
-		    attribute vec3 vert_color;
-
-		    //However, we want to send the color to
-		    //The fragment Shader. Declare it here and then in the fragment shader. Both will be the same variable
-		    varying vec3 fragColor;
-            
-		    //Now we need a uniform.  A uniform is something consistent for all the vertices
-		    //in buffers. Ideally, we would use mat4 instead of vec3
-		    uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
-		    uniform vec3 rotation;	// Set until changed
-		    
-            
-		    //Use a function to position the object. The X, Y, and Z are the vertices to be translated (pos)
-		    vec4 PositionObject(vec4 pos)
-		    {
-		    	// The transform matrix. Matrix is flipped around the X, y (eigen values)
-		    	// WebGL will take colum-major matricies. So be aware
-		    	mat4 translateM = mat4(1.0,0.0,0.0,0.0,
-		    				  		   0.0,1.0,0.0,0.0,
-		    				   		   0.0,0.0,1.0,0.0,
-		    				           transform.x,transform.y,transform.z,1.0);
-		    	// Multiplying each vertex (x,y,z,1) by this matrix. This will cause it to move
-		    	return translateM*pos;	
-		    }
-		    //Use a function to Rotate the object. Again we pass in the vertex
-		    vec4 RotateObject(vec4 pos)
-		    {
-		    	//This is a nice trick
-		    	vec3 c = cos(rotation);
-		    	vec3 s = sin(rotation);
-		    	//Surprise!  we have to go column first when we enter the matrix.
-
-		    	mat4 rotateX = mat4(1.0,0.0,0.0,0.0,
-		    						0.0,c.x,-1.0*s.x,0.0,
-		    						0.0,s.x,c.x,0.0,
-		    						0.0,0.0,0.0,1.0); 	// Rotation when x=x;
-		    	// Do your X and Z rotations (y=y)
-		    	mat4 rotateY = mat4(c.y,0.0,-1.0*s.y,0.0,
-		    						0.0,1.0,0.0,0.0,
-		    						s.y,0.0,c.y,0.0,
-		    						0.0,0.0,0.0,1.0);
-		    	mat4 rotateZ = mat4(c.z,-1.0*s.z,0.0,0.0,
-		    						s.z,c.z,0.0,0.0,
-		    						0.0,0.0,1.0,0.0,
-		    						0.0,0.0,0.0,1.0);	// Rotation when z=z;
-				// Idea is to pass in the rotation and to enable/disable certain rotations
-				// based on what is passed
-		    	return rotateX*rotateZ*rotateY*pos;
-		    }
-		    void main()
-		    {
-		    	fragColor = vert_color;
-		    	// Rotate first then translate to avoid orbiting
-		    	// Scaling -> Rotation -> Translation. Know that its from right to left
-		    	gl_Position=PositionObject(RotateObject(a_position));
-
-		    	// In the case you wanted to create the matricies inside the main()
-		    	// Alternate version: gl_Position = T*R*S*a_position
-		    }		
-
+		attribute vec4 a_position;	
+		//We now want to read in Colors
+		attribute vec3 vert_color;
+		//However, we want to send the color to
+		//The fragment Shader
+		varying vec3 fragColor;
+		void main()
+		{
+			fragColor = vert_color;
+			gl_Position=a_position;
+		}		
 		</SCRIPT>
 		<script id="2dFragmentShader" type="notjs">
 		//Fragment shaders do not have precision so we have to set it.
@@ -91,49 +39,133 @@
 		}
 		</script>
 		<script src="webgl_interface.js"></script>
-		<!--Before it was BasicGameObject.js-->
-		<script src="BasicGameObjectNoFill.js"></script>
+		<script src="BasicGameObject.js"></script>
 
 		<script>
 		class main
 		{	
 			constructor()
 			{
-
-			
-			this.myWEBGL = new WebGL_Interface();
-			this.myTriangle = [];
+				this.Visual = []
+				this.Solid = []
+				this.Trigger = []
+				this.objectCounter = 0
+				this.keys = []
+				this.myWEBGL = new WebGL_Interface();
+				this.program = this.myWEBGL.program;
+				//this.myTriangle = [];
 			}
 			
 			UpdateAll()
 			{
-			
+				for(var i in this.Visual){
+					this.Visuial[i].Update();
+				}
+				for(var i in this.Solid){
+					this.Solid[i].Update();
+				}
+				for(var i in this.Trigger){
+					this.Trigger[i].Update();
+				}
 			
 			}
 			RenderAll()
 			{
-			
+				for(var i in this.Visual){
+					this.Visuial[i].Render(this.program);
+				}
+				for(var i in this.Solid){
+					this.Solid[i].Render(this.program);
+				}
+				for(var i in this.Trigger){
+					this.Trigger[i].Render(this.program);
+				}
 			
 			}
 			CheckCollision(loc1,rad1,loc2, rad2)
 			{
-			
+				//we will code this in ourself 
+
+				//return true if colide false if not
+
+				//look over slides for formulas
+
 			}
 
 			
 			CreateObject(type, prefab, loc, rot)
 			{
-			
+				//type 0 = visual
+				//type 1 = solid
+				//type 3 = trigger
+
+				var temp = new prefab;
+				var id = "ID" + this.objectCounter;
+				this.objectCounter++
+				temp.id = id;
+				temp.prefab = prefab;
+
+				//deep copy
+				for(let i = 0; i <3; i++){
+					temp.loc[i] = loc[i];
+					temp.rot[i] = rot[i];
+				}
+
+				switch(type)
+				{
+					case 0:
+						this.Visual[id] = temp;
+					break;
+					case 1:
+						this.Solid[id] = temp;
+					break;
+					case 2:
+						this.Trigger[id] = temp;
+					break;
+					default:
+					break;
+
+				}
+				return temp;
+
 			}
 			DestroyObject(id)
 			{
-			
+				if(id in this.Visual){
+					delete this.Visual[id];
+				}
+				if(id in this.Solid){
+					delete this.Solid[id];
+				}
+				if(id in this.Trigger){
+					delete this.Trigger[id];
+				}
 			}
 			
+			CheckKey(k)
+			{
+				//check if key code is not in dictionary 
+				if(k in this.Keys){
+					return this.Key[k]
+				}
+				return false
+			}
+
+
 			KeyDown(event)
 			{
-				console.log("The number of the key pressed:  "+event.keyCode+
-				",the string of the event code: "+String.fromCharCode(event.keyCode));                   
+				this.Keys[String.fromCharCode(event.keyCode)] = true;
+				//store current status of all keys in a dictionary
+				//this console log should be this
+				console.log(String.fromCharCode(event.keyCode) + " should be true - " + this.keys[String.fromCharCode])
+
+				//console.log("The number of the key pressed:  "+event.keyCode+",the string of the event code: "+String.fromCharCode(event.keyCode));                   
+			}
+
+			KeyUp(event){
+
+				this.Keys[String.fromCharCode(event.keyCode)] = false;
+				console.log(String.fromCharCode(event.keyCode) + " should be false - " + this.keys[String.fromCharCode])
 			}
 			
 			MouseClick(event)
