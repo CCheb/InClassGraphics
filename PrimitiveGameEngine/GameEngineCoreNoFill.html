@@ -97,11 +97,26 @@
 		{	
 			constructor()
 			{
-				this.Visual = []
-				this.Solid = []
-				this.Trigger = []
-				this.objectCounter = 0
-				this.keys = []
+				// Associate functions (dictionaries) for our Visual, Solid, and Trigger
+				// objects (will probably only need Solid and Trigger for coin collector)
+				this.Visual = [];
+				this.Solid = [];
+				this.Trigger = [];
+
+				// Counter helps us set up the unique id for the object which ever type it is 
+				this.objectCounter = 0;
+				this.Keys = [];
+
+				// Setting up the input keys. False at first since we are not pressing anything
+				// when loadin up
+				this.Keys["W"] = false;
+				this.Keys["S"] = false;
+				this.Keys["A"] = false;
+				this.Keys["D"] = false;
+				this.Keys[' '] = false;
+				
+
+				// Allows us to obtain a fully functional webgl program! Treat it like a black box
 				this.myWEBGL = new WebGL_Interface();
 				this.program = this.myWEBGL.program;
 				//this.myTriangle = [];
@@ -109,6 +124,7 @@
 			
 			UpdateAll()
 			{
+				// Loop through each dictionary and call each object's Update function
 				for(var i in this.Visual){
 					this.Visuial[i].Update();
 				}
@@ -120,8 +136,11 @@
 				}
 			
 			}
+
 			RenderAll()
 			{
+				// Very similar to UpdateAll(). Idea is to loop through each dictionary and
+				// call each objects's Render function
 				for(var i in this.Visual){
 					this.Visuial[i].Render(this.program);
 				}
@@ -133,8 +152,12 @@
 				}
 			
 			}
+
 			CheckCollision(loc1,rad1,loc2, rad2)
 			{
+				// Idea is to implement a square collider and to only send one object 
+				// and its respective 'ghost' self which is the new position we want to test
+
 				//we will code this in ourself 
 
 				//return true if colide false if not
@@ -143,29 +166,41 @@
 
 			}
 
-			
 			CreateObject(type, prefab, loc, rot)
 			{
+
+				// The idea is to create a new object based on the passed type and
+				// class name (prefab)
+
 				//type 0 = visual
 				//type 1 = solid
 				//type 3 = trigger
 
+				// Prefab is literally the class name which allows us
+				// to create an instance of that class 
+
 				var temp = new prefab;
-				var id = "ID" + this.objectCounter;
+				var id = "ID" + this.objectCounter;	// See how we use the objectCounter
 				this.objectCounter++
 				temp.id = id;
 				temp.prefab = prefab;
 
-				//deep copy
-				for(let i = 0; i <3; i++){
+				// This is a deep copy and helps us prevent any cross references
+				// unlike a shallow copy (Ex: temp.loc = loc). In this case
+				// each objects loc and rot will point to its own place in memory
+				for(let i = 0; i < 3; i++){
 					temp.loc[i] = loc[i];
 					temp.rot[i] = rot[i];
 				}
 
 				switch(type)
 				{
+					// Based on the passed type we send the newly created
+					// object to the correct dictionary with the id (string)
+					// as the key and the object itself as the value.
 					case 0:
-						this.Visual[id] = temp;
+						// Again, no need to create a Visual dictionary for coin collector
+						this.Visual[id] = temp;	
 					break;
 					case 1:
 						this.Solid[id] = temp;
@@ -177,11 +212,17 @@
 					break;
 
 				}
+
+				// Do we need to pass the temp variable?
 				return temp;
 
 			}
+
 			DestroyObject(id)
 			{
+				// Once the signal has been sent for destroying a particular
+				// object, we find where its at and destroy it. Since we are using
+				// dictionaries, no holes are created when deleting
 				if(id in this.Visual){
 					delete this.Visual[id];
 				}
@@ -195,32 +236,53 @@
 			
 			CheckKey(k)
 			{
-				//check if key code is not in dictionary 
+				//check if key code is in dictionary. If yes, the return it
 				if(k in this.Keys){
-					return this.Key[k]
+					return true; // Was this.Key[k] which will be error
 				}
-				return false
+				return false;
 			}
-
 
 			KeyDown(event)
 			{
-				this.Keys[String.fromCharCode(event.keyCode)] = true;
-				//store current status of all keys in a dictionary
-				//this console log should be this
-				console.log(String.fromCharCode(event.keyCode) + " should be true - " + this.keys[String.fromCharCode])
-
-				//console.log("The number of the key pressed:  "+event.keyCode+",the string of the event code: "+String.fromCharCode(event.keyCode));                   
+				// Checking for a pressed key
+				// The idea is to use the contents of this.Keys as signals of when
+				// a particular key is pressed. If 'w' is pressed for example then
+				// 'w' in this.Keys will be true and the player will move.
+				// Check if key is the right key first
+				var strKeyCode = String.fromCharCode(event.keyCode);
+				if(this.CheckKey(strKeyCode))
+				{
+					this.Keys[strKeyCode] = true;
+					console.log(strKeyCode + " should be true - " + this.Keys[strKeyCode]);
+					console.log("The number of the key pressed:  "+event.keyCode+",the string of the event code: "+strKeyCode);
+				}
+				else
+					console.log("Wrong key press: " + strKeyCode);
+				
+				                  
 			}
 
-			KeyUp(event){
-
-				this.Keys[String.fromCharCode(event.keyCode)] = false;
-				console.log(String.fromCharCode(event.keyCode) + " should be false - " + this.keys[String.fromCharCode])
+			KeyUp(event)
+			{
+				// Checking for a released key
+				// As soon as we release the key, KeyUp will be fired and will set the status of that
+				// key in this.Keys to false meaning that the key is not being pressed anymore
+				var strKeyCode = String.fromCharCode(event.keyCode);
+				if(this.CheckKey(strKeyCode))
+				{
+					this.Keys[strKeyCode] = false;
+					console.log(strKeyCode + " should be false - " + this.Keys[strKeyCode]);
+					
+				}
+				else
+					console.log("Wrong key press: " + strKeyCode);
 			}
 			
 			MouseClick(event)
 			{
+				// Capture the mouse location inside the canvas and print the
+				// location in clipspace coordinates
 				var rect = canvas.getBoundingClientRect();
 				var realX = event.clientX - rect.left;
 				var realY = event.clientY - rect.top;
@@ -239,8 +301,12 @@
 			{
 				m.KeyDown(event);
 			}
-			
 
+			static keyU(event)
+			{
+				m.KeyUp(event);
+			}
+			
 			static mouseH(event)
 			{
 				m.MouseClick(event);
@@ -248,6 +314,7 @@
 			
 			static MainLoop()
 			{
+				// Our main render loop. It contains all of the Game logic from the slides
 				m.UpdateAll();
 				m.RenderAll();
 				requestAnimationFrame(main.MainLoop);
@@ -273,12 +340,26 @@
 		<button id="myB">Clear Canvas</button>
 		
 		<SCRIPT>
+			// Our canvas and gl context references
 			var canvas = document.getElementById("myCanvas");
 			var gl = canvas.getContext("webgl");
+
+			// Main object that acts as our driver code
 			var m = new main();
-			window.onkeydown = main.keyD;
+
+			// Keydown event for our window. This makes sense since we need to press buttons
+			// and its the window that recieves them
+			
+			//window.onkeydown = main.keyD;
+			//window.onkeyup = main.keyD;
+
+			window.addEventListener("keydown",main.keyD);
+			window.addEventListener("keyup",main.keyU);
+
+			// Left click event inside our canvas
 			canvas.addEventListener("click",main.mouseH);
 			
+			// Make sure to start the loop
 			requestAnimationFrame(main.MainLoop);	
 			
 		</SCRIPT>
