@@ -163,7 +163,20 @@
 				//this.myTriangle = [];
 				this.Keys = [];
 
-				this.CreateObject(2,Triangle1,[0,0,-5],[0,0,0]);
+				for(let i = 0; i < 20; i++)
+				{
+					for(let j = 0; j < 20; j++)
+					{
+						// Create a wall of Doritos that is 20x20 and add an offset to the
+						// x and y to make it appear at the center of the screen
+						this.CreateObject(2,Triangle1,[i-10,j-8,-8],[0,0,0]);
+
+					}
+				}
+				//this.CreateObject(2,Triangle1,[0,0,-5],[0,0,0]);
+				//this.CreateObject(2,Triangle1,[1,0,-5],[0,0,0]);
+				
+				// This is our camera object!
 				this.CreateObject(0,Camera,[0,0,0],[0,0,0]);
 				//this.CreateObject(2,Player,[0,0,0],[0,0,0]);
 			}

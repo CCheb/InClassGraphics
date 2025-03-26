@@ -309,7 +309,9 @@ class Triangle1 extends GameObject
 	 {
 		
 
-
+		// Enable the dorito to rotate slowly
+		this.angVelocity = [0,0.008,0];
+		this.Move();
 
 
 	 }
@@ -340,6 +342,7 @@ class Camera extends GameObject
 		this.angVelocity = [0,0,0];
 		if("A" in m.Keys && m.Keys["A"])
 		{
+			// 1 == rotate y
 			this.angVelocity[1] +=.01;		//euler angles x,y,z
 		}
 		if("D" in m.Keys && m.Keys["D"])
@@ -347,6 +350,7 @@ class Camera extends GameObject
 			this.angVelocity[1] -=.01;
 		}
 		this.transform.doRotations(this.rot);
+		// Want to move in the z direction which is where the camera is pointing
 		var tempF = this.transform.forward;
 		if("W" in m.Keys && m.Keys["W"])
 		{
@@ -364,6 +368,7 @@ class Camera extends GameObject
 		}
 		this.Move();
 
+		// Now set the world loc and rot variables for the camera
 		var wLoc = gl.getUniformLocation(m.myWEBGL.program, 'worldLoc');
 		gl.uniform3fv(wLoc, new Float32Array([this.loc[0],this.loc[1],this.loc[2]]));
 		var wRot = gl.getUniformLocation(m.myWEBGL.program, 'worldRotation');
@@ -371,8 +376,5 @@ class Camera extends GameObject
 		// camLoc and worldRot here so that the camera can move.
 	}
 
-	Render()
-	{
-
-	}
+	// No need to render since the camera has no verticies!
 }
