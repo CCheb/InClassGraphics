@@ -18,14 +18,18 @@
 				//We will need this for now!
 				gl.enable(gl.DEPTH_TEST);
 				
+				// Once the program is set, we can now set the uniforms. This is because linked to the
+				// particular program of use.
 				gl.useProgram(this.program);
 
 				// Set these two for the camera render function
 				var camLoc = gl.getUniformLocation(this.program,'worldLoc');
 				gl.uniform3fv(camLoc,new Float32Array([0,0,0]));
-				var worldLoc = gl.getUniformLocation(this.program,'worldRotation');
-				gl.uniform3fv(worldLoc,new Float32Array([0,0,0]));
+				var worldRot = gl.getUniformLocation(this.program,'worldRotation');
+				gl.uniform3fv(worldRot,new Float32Array([0,0,0]));
 
+				// No need to have a game object change anything from the camera
+				// so we set them here 
 				var tempLoc = gl.getUniformLocation(this.program,'n');
 				gl.uniform1f(tempLoc,0.1);
 				tempLoc = gl.getUniformLocation(this.program,'f');

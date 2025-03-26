@@ -1,52 +1,53 @@
 class Transform
-		{
-			constructor()
-			{
-				this.forward = [0,0,1];
-				this.right = [1,0,0];
-				this.up = [0,1,0];
-			}
-		
-			doRotations(RotAngles)
-			{
-				this.xRot = [
-							[1,0,0,0],
-							[0,Math.cos(RotAngles[0]),-1*Math.sin(RotAngles[0]),0],
-							[0,Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
-							[0,0,0,1]
-						];		
-				this.yRot = [
-						[Math.cos(RotAngles[1]),0,Math.sin(RotAngles[1]),0],
-						[0,1,0,0],
-						[-1*Math.sin(RotAngles[1]),0,Math.cos(RotAngles[1]),0],
-						[0,0,0,1]	
-						];
-				this.zRot = [
-							[Math.cos(RotAngles[2]),-1*Math.sin(RotAngles[2]),0,0],
-							[Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
-							[0,0,1,0],
-							[0,0,0,1]
-						]
-				//this.forward = this.crossMultiply(xRot,[0,0,1,0]);		
-				this.forward = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,0,1,0])))
-				this.right = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[1,0,0,0])))
-				this.up = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,1,0,0])))
-			}			
-			crossMultiply(M,V)
-			{
-			//console.log(M[0][3]);
-			//console.log(V[3]);
-			var temp = [
-						M[0][0]*V[0]+M[0][1]*V[1]+M[0][2] * V[2]+ M[0][3]*V[3],
-						M[1][0]*V[0]+M[1][1]*V[1]+M[1][2] * V[2]+ M[1][3]*V[3],
-						M[2][0]*V[0]+M[2][1]*V[1]+M[2][2] * V[2]+ M[2][3]*V[3],
-						M[3][0]*V[0]+M[3][1]*V[1]+M[3][2] * V[2]+ M[3][3]*V[3]
-						]
-			//console.log(temp);
-				return temp;
-			}
-			
-		}
+{
+	constructor()
+	{
+		// Our direction vectors which follow the object rotation
+		this.forward = [0,0,1];
+		this.right = [1,0,0];
+		this.up = [0,1,0];
+	}
+
+	doRotations(RotAngles)
+	{
+		this.xRot = [
+					[1,0,0,0],
+					[0,Math.cos(RotAngles[0]),-1*Math.sin(RotAngles[0]),0],
+					[0,Math.sin(RotAngles[0]),Math.cos(RotAngles[0]),0],
+					[0,0,0,1]
+				];		
+		this.yRot = [
+				[Math.cos(RotAngles[1]),0,Math.sin(RotAngles[1]),0],
+				[0,1,0,0],
+				[-1*Math.sin(RotAngles[1]),0,Math.cos(RotAngles[1]),0],
+				[0,0,0,1]	
+				];
+		this.zRot = [
+					[Math.cos(RotAngles[2]),-1*Math.sin(RotAngles[2]),0,0],
+					[Math.sin(RotAngles[2]),Math.cos(RotAngles[2]),0,0],
+					[0,0,1,0],
+					[0,0,0,1]
+				]
+		//this.forward = this.crossMultiply(xRot,[0,0,1,0]);		
+		this.forward = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,0,1,0])))
+		this.right = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[1,0,0,0])))
+		this.up = this.crossMultiply(this.zRot,this.crossMultiply(this.yRot,this.crossMultiply(this.xRot,[0,1,0,0])))
+	}			
+	crossMultiply(M,V)
+	{
+	//console.log(M[0][3]);
+	//console.log(V[3]);
+	var temp = [
+				M[0][0]*V[0]+M[0][1]*V[1]+M[0][2] * V[2]+ M[0][3]*V[3],
+				M[1][0]*V[0]+M[1][1]*V[1]+M[1][2] * V[2]+ M[1][3]*V[3],
+				M[2][0]*V[0]+M[2][1]*V[1]+M[2][2] * V[2]+ M[2][3]*V[3],
+				M[3][0]*V[0]+M[3][1]*V[1]+M[3][2] * V[2]+ M[3][3]*V[3]
+				]
+	//console.log(temp);
+		return temp;
+	}
+	
+}
 
 
 class GameObject
@@ -97,6 +98,7 @@ class GameObject
 			this.loc = tempP;
 			//see if there are any collisions
 			//handle them.
+			// Add trigger collision here if needed
 		}
 	}
 
@@ -107,6 +109,8 @@ class GameObject
 	}
 	Render(program)
 	{
+		// Can probably place Render program here and just use a variable
+		// to define the count
 		console.error(this.name + " render() is NOT IMPLEMENTED!");
 	}	
 }
@@ -152,22 +156,23 @@ class Player extends GameObject
 		offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
 		gl.enableVertexAttribArray(colorAttributeLocation);
 		gl.vertexAttribPointer(colorAttributeLocation, size, type, normalize, stride, offset);
-				
+		
+		// As long as gl.useProgram() is called before setting the uniforms, it dont matter where
+		// they are at
 		var tranLoc  = gl.getUniformLocation(program,'transform');
 		gl.uniform3fv(tranLoc,new Float32Array(this.loc));
 		var thetaLoc = gl.getUniformLocation(program,'rotation');
 		gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
 		
-		
 		var primitiveType = gl.TRIANGLES;
 		offset = 0;
-		var count = 3;
+		var count = 3; 	// Use variable istead
 		gl.drawArrays(primitiveType, offset, count);
 	}
 	Update()
 	{
-		this.velocity = [0,0,0]
-		this.angVelocity = [0,0,0]
+		this.velocity = [0,0,0];
+		this.angVelocity = [0,0,0];
 		if("A" in m.Keys && m.Keys["A"])
 		{
 			this.angVelocity[2] +=.01;		//euler angles x,y,z
@@ -208,7 +213,7 @@ class Demo extends GameObject
 	
 	Update()
 	{
-		this.velocity = [0,0,0]
+		this.velocity = [0,0,0];
 		if("A" in m.Keys && m.Keys["A"])
 		{
 			this.velocity[0] = -1;
@@ -310,3 +315,20 @@ class Triangle1
 }*/
 
 // Treat camera as a game object and go from there.
+class Camera extends GameObject
+{
+	constructor()
+	{
+		// No need to model the camera itself only the object that we will see
+	}
+
+	Update()
+	{
+		// camLoc and worldRot here so that the camera can move.
+	}
+
+	Render()
+	{
+
+	}
+}

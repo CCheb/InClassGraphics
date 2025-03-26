@@ -25,21 +25,28 @@
 		    uniform vec3 transform; // translate in the case it breaks. More efficient if we use matricies
 		    uniform vec3 rotation;	// Set until changed
 		    
+			
 			uniform vec3 worldLoc;
 			uniform vec3 worldRotation;
-			uniform float n;
-			uniform float f;
-			uniform float r;
-			uniform float t;
+			uniform float n;	// near
+			uniform float f;	// far
+			uniform float r;	// right
+			uniform float t;	// top
 
 			vec4 MoveCamera(vec4 pos)
 			{
+				// In terms of world coordinates
+				// Think of the camera being still/locked into position while the world moves
+				// around it. So in this case to 'move' the camera, we move the entire world
 				vec3 cw = cos(worldRotation);
 				vec2 sw = sin(worldRotation);
+
+				// Its negative because if we want to move the camera right, we have to move 
+				// world left, so we flip the signs to make it easier for us
 				mat4 translateView = mat4(1.0,0.0,0.0,0.0,
-									   0.0,1.0,0.0,0.0,
-									   0.0,0.0,1.0,0.0,
-									   -1.0*worldLoc.x,-1.0*worldLoc.y,worldLoc.z,1.0);
+										 0.0,1.0,0.0,0.0,
+									     0.0,0.0,1.0,0.0,
+									     -1.0*worldLoc.x,-1.0*worldLoc.y,worldLoc.z,1.0);
 				
 				mat4 rotateView = mat4(cw.y,0.0,-1.0*sw.y,0.0,
 									   0.0,1.0,0.0,0.0,
@@ -50,11 +57,16 @@
 
 			vec4 ApplyProjection(vec4 pos)
 			{
+				// This is the matrix that will take us from camera space over to 
+				// clipspace. We also have the ability to specify our own units and 
+				// the projection matrix will convert to clipspace
+
 				mat4 SimpleOrtho = mat4(1.0,0.0,0.0,0.0,
 										0.0,1.0,0.0,0.0,
 										0.0,0.0,1.0,0.0,
 										0.0,0.0,0.0,1.0);
 				
+				// Take a look at the slides for more in depth information on the matricies
 				mat4 ComplexPerspective(n/r,0.0,0.0,0.0,
 										0.0,n/t,0.0,0.0,
 										0.0,0.0,-1.0*(f+n)/(f-n),-1.0,
@@ -65,9 +77,8 @@
 										 0.0,0.0,1.0,0.0,
 										 0.0,0.0,0.0,1.0);
 				
-				
-				
-
+				// Through out all of these functions, we make sure to perform multiplication
+				// with the verticies (pos)
 				return ComplexPerspective*pos;
 			}
 
@@ -112,11 +123,15 @@
 		    void main()
 		    {
 		    	fragColor = vert_color;
+				// Go from object -> world (In this case Rotation -> Translation)
 				vec4 worldCord = PositionObject(RotateObject(a_position));
+				// Go from world -> camera
 				vec4 cameraSpace = MoveCamera(worldCord);
+				// These previous two help form the model-view matrix
 
-		    	// Rotate first then translate to avoid orbiting
-		    	// Scaling -> Rotation -> Translation. Know that its from right to left
+
+
+				// Go from camera -> clipspace (will be the final resting spot of the vertex!)
 		    	gl_Position=ApplyProjection(cameraSpace);
 
 		    	// In the case you wanted to create the matricies inside the main()
@@ -141,14 +156,14 @@
 		{	
 			constructor()
 			{
-			this.Visual = [];
-			this.Solid = [];
-			this.Trigger = [];
-			this.ObjectCounter = 0;			
+				this.Visual = [];
+				this.Solid = [];
+				this.Trigger = [];
+				this.ObjectCounter = 0;			
 
-			this.myWEBGL = new WebGL_Interface();
-			//this.myTriangle = [];
-			this.Keys = [];
+				this.myWEBGL = new WebGL_Interface();
+				//this.myTriangle = [];
+				this.Keys = [];
 			}
 			
 			UpdateAll()
@@ -193,33 +208,33 @@
 			
 			CreateObject(type, prefab, loc, rot)
 			{
-			//type 0 = visual
-			//type 1 = solid
-			//type 2 = trigger
-			var temp = new prefab; //Yes this dark sorcery will work.
-			var id = "ID"+this.ObjectCounter;
-			this.ObjectCounter ++;
-			temp.id = id;
-			temp.prefab = prefab;
-			temp.loc = loc;
-			temp.rot = rot;
-				switch(type)
-				{
-					case 0:
-						this.Visual[id] = temp;
-					break;
-					case 1:
-						this.Solid[id] = temp;
-					break;
-					case 2:
-						this.Trigger[id] = temp;
-					break;
-					default:
-					break;
-				}		
-			//We can return the game object to the calling function
-			//Should the user want to set custom names or properties on it.
-			return temp;
+				//type 0 = visual
+				//type 1 = solid
+				//type 2 = trigger
+				var temp = new prefab; //Yes this dark sorcery will work.
+				var id = "ID"+this.ObjectCounter;
+				this.ObjectCounter ++;
+				temp.id = id;
+				temp.prefab = prefab;
+				temp.loc = loc;
+				temp.rot = rot;
+					switch(type)
+					{
+						case 0:
+							this.Visual[id] = temp;
+						break;
+						case 1:
+							this.Solid[id] = temp;
+						break;
+						case 2:
+							this.Trigger[id] = temp;
+						break;
+						default:
+						break;
+					}		
+				//We can return the game object to the calling function
+				//Should the user want to set custom names or properties on it.
+				return temp;
 			}
 			
 			
@@ -292,8 +307,6 @@
 			}
 
 		}
-		
-		
 		</script>
 		
 		
