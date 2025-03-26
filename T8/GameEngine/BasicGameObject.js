@@ -235,10 +235,12 @@ class Demo extends GameObject
 	
 }
 
-class Triangle1
+// Added child status 
+class Triangle1 extends GameObject
  {
 	 constructor()
 	 {
+		super();
 		 this.buffer=gl.createBuffer();
 		 gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		 //Now we want to add color to our vertices information.
@@ -305,6 +307,11 @@ class Triangle1
 	 }
 	 Update()
 	 {
+		
+
+
+
+
 	 }
  }
 
@@ -319,11 +326,48 @@ class Camera extends GameObject
 {
 	constructor()
 	{
+		super();
 		// No need to model the camera itself only the object that we will see
+
+		this.loc = [0,0,0];
+		this.rot = [0,0,0];
 	}
 
 	Update()
 	{
+		// All of this is from the Player update
+		this.velocity = [0,0,0];
+		this.angVelocity = [0,0,0];
+		if("A" in m.Keys && m.Keys["A"])
+		{
+			this.angVelocity[1] +=.01;		//euler angles x,y,z
+		}
+		if("D" in m.Keys && m.Keys["D"])
+		{
+			this.angVelocity[1] -=.01;
+		}
+		this.transform.doRotations(this.rot);
+		var tempF = this.transform.forward;
+		if("W" in m.Keys && m.Keys["W"])
+		{
+			for(var i =0; i < 3; i ++)
+			{
+				this.velocity[i] += tempF[i]*.01; 
+			}
+		}
+		if("S" in m.Keys && m.Keys["S"])
+		{
+			for(var i =0; i < 3; i ++)
+			{
+				this.velocity[i] -= tempF[i]*.01; 
+			}
+		}
+		this.Move();
+
+		var wLoc = gl.getUniformLocation(m.myWEBGL.program, 'worldLoc');
+		gl.uniform3fv(wLoc, new Float32Array([this.loc[0],this.loc[1],this.loc[2]]));
+		var wRot = gl.getUniformLocation(m.myWEBGL.program, 'worldRotation');
+		gl.uniform3fv(wRot, new Float32Array([this.rot[0],this.rot[1],this.rot[2]]));
 		// camLoc and worldRot here so that the camera can move.
 	}
 
