@@ -19,6 +19,22 @@
 				gl.enable(gl.DEPTH_TEST);
 				
 				gl.useProgram(this.program);
+
+				// Set these two for the camera render function
+				var camLoc = gl.getUniformLocation(this.program,'worldLoc');
+				gl.uniform3fv(camLoc,new Float32Array([0,0,0]));
+				var worldLoc = gl.getUniformLocation(this.program,'worldRotation');
+				gl.uniform3fv(worldLoc,new Float32Array([0,0,0]));
+
+				var tempLoc = gl.getUniformLocation(this.program,'n');
+				gl.uniform1f(tempLoc,0.1);
+				tempLoc = gl.getUniformLocation(this.program,'f');
+				gl.uniform1f(tempLoc,500);
+				tempLoc = gl.getUniformLocation(this.program,'r');
+				gl.uniform1f(tempLoc,0.1);
+				tempLoc = gl.getUniformLocation(this.program,'t');
+				gl.uniform1f(tempLoc,0.06);
+
 			}
 			
 			createShader(type,source)

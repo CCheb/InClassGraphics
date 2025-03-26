@@ -308,3 +308,5 @@ class Triangle1
 	
 	
 }*/
+
+// Treat camera as a game object and go from there.
