@@ -32,6 +32,13 @@
 		uniform float f;
 		uniform float r;
 		uniform float t;
+
+		//Lighting. The idea is to implement a simple version of the phong model
+		varying vec3 fakenormal;
+		varying vec3 v_surfaceToLight;	// L vector
+		varying vec3 v_surfaceToView;	// V vector
+		varying vec3 v_spot_surfaceToLight;	
+
 		
 		
 		vec4 MoveCamera(vec4 pos)
@@ -106,21 +113,96 @@
 		}
 		void main()
 		{
+			// Idea with fake normals is to have them spawn from the
+			// center of the object and have them shoot out from there
+			// these are not real normals. Ideally, each vertex should have its
+			// own normals
+			if(length(a_position)<5.0)
+			{
+				// fakenormal = vec3(a_position);
+				fakenormal = RotateObject(a_position).xyz;
+			}
+			else
+			{
+				fakenormal = vec3(0.0,1.0,0.0);
+			}
+			vec4 worldSpace = PositionObject(RotateObject(a_position));
+
+			// Lighting stuff
+			// The position of the point light. Moved it back in the -z direction
+			v_surfaceToLight = vec3(0.0,0.0,-8.0) - worldSpace.xyz;
+
+			// To make the light move with the world as the camera rotates and moves
+			v_surfaceToView = worldLoc - worldSpace.xyz;
+			v_spot_surfaceToLight = vec3(5.0,0.0,-2.0) - worldSpace.xyz;
+
 			fragColor = vert_color;
-			vec4 worldCord = PositionObject(RotateObject(a_position));
-			vec4 cameraSpace = MoveCamera(worldCord);
+
+			vec4 cameraSpace = MoveCamera(worldSpace);
+			gl_Position = ApplyProjection(cameraSpace);
+
+
+
+			//fragColor = vert_color;
+			//vec4 worldCord = PositionObject(RotateObject(a_position));
+			//vec4 cameraSpace = MoveCamera(worldCord);
 			
-			gl_Position=ApplyProjection(cameraSpace);
+			//gl_Position=ApplyProjection(cameraSpace);
 		}		
 		</SCRIPT>
 		<script id="2dFragmentShader" type="notjs">
 		//Fragment shaders do not have precision so we have to set it.
 		precision mediump float;
 		varying vec3 fragColor;
+		varying vec3 fakenormal;
+		varying vec3 v_surfaceToLight;
+		varying vec3 v_surfaceToView;
+		varying vec3 v_spot_surfaceToLight;
+
 		void main()
 		{
-			//gl_FragColor = vec4(0,0,1,1); //Between 0 and 1.
-			gl_FragColor = vec4(fragColor,1);
+			// Main idea is to multiply the fragColor with a value that will either
+			// make it brighter (towards 1) or darker (towards 0). At the end these colors 
+			// will get interpolated by the fragment shader
+
+			// AMBIENT
+			float ambient = 0.15;
+			gl_FragColor = vec4(ambient*fragColor,1);
+
+			// DISTANCE LIGHT
+			// Need to normalize since we are looking for unit vectors
+			// Second normalize is where the directional light is facing
+			float d_light = dot(normalize(fakenormal),normalize(vec3(0.0,0.0,5.0)));
+			if(d_light < 0.0)
+			{
+				d_light = 0.0;
+			}
+			gl_FragColor = vec4(fragColor*(ambient + d_light),1);
+
+			// POINT LIGHT
+			float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight))*2.0/length(v_surfaceToLight);
+			if(p_light < 0.0)
+			{
+				p_light = 0.0;
+			}
+			gl_FragColor = vec4(fragColor*(p_light + d_light + ambient),1);
+
+			// SPOT LIGHT
+			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(1.0,0.0,0.0));
+			float spot_light_power = 0.0;
+			if(spot_light >= 0.98)
+			{
+			/*
+				spot_light_power = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight));
+				if(spot_light_power < 0.0)
+				{
+					spot_light_power = 0.0;
+				}
+			*/
+			}
+			//gl_FragColor = vec4(fragColor*(spot_light_power),1);
+			//gl_FragColor = vec4(fragColor*(p_light + d_light + ambient + spot_light_power),1);
+
 		}
 		</script>
 		
@@ -131,14 +213,14 @@
 		{	
 			constructor()
 			{
-			this.Visual = [];
-			this.Solid = [];
-			this.Trigger = [];
-			this.ObjectCounter = 0;			
+				this.Visual = [];
+				this.Solid = [];
+				this.Trigger = [];
+				this.ObjectCounter = 0;			
 
-			this.myWEBGL = new WebGL_Interface();
-			this.myTriangle = [];
-			this.Keys = [];
+				this.myWEBGL = new WebGL_Interface();
+				this.myTriangle = [];
+				this.Keys = [];
 			}
 			
 			UpdateAll()
@@ -184,33 +266,33 @@
 			
 			CreateObject(type, prefab, loc, rot)
 			{
-			//type 0 = visual
-			//type 1 = solid
-			//type 2 = trigger
-			var temp = new prefab; //Yes this dark sorcery will work.
-			var id = "ID"+this.ObjectCounter;
-			this.ObjectCounter ++;
-			temp.id = id;
-			temp.prefab = prefab;
-			temp.loc = loc;
-			temp.rot = rot;
-				switch(type)
-				{
-					case 0:
-						this.Visual[id] = temp;
-					break;
-					case 1:
-						this.Solid[id] = temp;
-					break;
-					case 2:
-						this.Trigger[id] = temp;
-					break;
-					default:
-					break;
-				}		
-			//We can return the game object to the calling function
-			//Should the user want to set custom names or properties on it.
-			return temp;
+				//type 0 = visual
+				//type 1 = solid
+				//type 2 = trigger
+				var temp = new prefab; //Yes this dark sorcery will work.
+				var id = "ID"+this.ObjectCounter;
+				this.ObjectCounter ++;
+				temp.id = id;
+				temp.prefab = prefab;
+				temp.loc = loc;
+				temp.rot = rot;
+					switch(type)
+					{
+						case 0:
+							this.Visual[id] = temp;
+						break;
+						case 1:
+							this.Solid[id] = temp;
+						break;
+						case 2:
+							this.Trigger[id] = temp;
+						break;
+						default:
+						break;
+					}		
+				//We can return the game object to the calling function
+				//Should the user want to set custom names or properties on it.
+				return temp;
 			}
 			
 			
