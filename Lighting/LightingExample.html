@@ -34,6 +34,7 @@
 		uniform float t;
 
 		//Lighting. The idea is to implement a simple version of the phong model
+		// Make array to index each light, or create variable for each light
 		varying vec3 fakenormal;
 		varying vec3 v_surfaceToLight;	// L vector
 		varying vec3 v_surfaceToView;	// V vector
@@ -117,19 +118,26 @@
 			// center of the object and have them shoot out from there
 			// these are not real normals. Ideally, each vertex should have its
 			// own normals
+
+			// Spherical effect on objects
+			// from edge to center
 			if(length(a_position)<5.0)
 			{
 				// fakenormal = vec3(a_position);
+				// need to adjust the normal to where the
+				// verticie is facing
 				fakenormal = RotateObject(a_position).xyz;
 			}
 			else
 			{
+				// Ground planes normal will be up always
 				fakenormal = vec3(0.0,1.0,0.0);
 			}
 			vec4 worldSpace = PositionObject(RotateObject(a_position));
 
 			// Lighting stuff
 			// The position of the point light. Moved it back in the -z direction
+			// Position doesnt have to be a constant, it can be a uniform
 			v_surfaceToLight = vec3(0.0,0.0,-8.0) - worldSpace.xyz;
 
 			// To make the light move with the world as the camera rotates and moves
@@ -163,7 +171,8 @@
 		{
 			// Main idea is to multiply the fragColor with a value that will either
 			// make it brighter (towards 1) or darker (towards 0). At the end these colors 
-			// will get interpolated by the fragment shader
+			// will get interpolated by the fragment shader. All normalization on the fragment
+			// shader
 
 			// AMBIENT
 			float ambient = 0.15;
@@ -171,10 +180,12 @@
 
 			// DISTANCE LIGHT
 			// Need to normalize since we are looking for unit vectors
-			// Second normalize is where the directional light is facing
+			// Second normalize is where the directional light is facing/pointing
 			float d_light = dot(normalize(fakenormal),normalize(vec3(0.0,0.0,5.0)));
 			if(d_light < 0.0)
 			{
+				// Dont want negative light
+				// Ground will not be lit when facing up
 				d_light = 0.0;
 			}
 			gl_FragColor = vec4(fragColor*(ambient + d_light),1);
