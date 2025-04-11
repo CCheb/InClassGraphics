@@ -1,0 +1,547 @@
+<!DOCTYPE HTML>
+<HTML lang="en">
+	<Head>
+	<Title>"Modularizing WebGL"</TITLE>
+		
+		<!-- 
+		GLSL is the language used for shaders (GL Shader Language)
+		
+		Attribute - you specify how to pull the data out of the buffers you supply.
+		Buffers - Data loaded onto the GPU (Normally vertex information)
+		
+		Uniforms - global variables (in GLSL) that you set before you run the shader program
+		
+		Textures - Textures are arrays of data you can randomly acces in your shader program.  
+		
+		Varying - are way for a vertex shader to pass data to the fragmentShader.
+		-->
+		<script id="2dVertexShader" type="notjs">
+		attribute vec4 a_position;	
+		
+		//!!!!!!!!!!!!!!! Texture change !!!!!!!!!!
+		//We no Longer going to read in colors
+		//attribute vec3 vert_color;
+		//However, we want to send the color to
+		//The fragment Shader
+		//varying vec3 fragColor;
+		//WE need to add varying and attributes for the texture vertex.
+		// Just like in colors 
+		attribute vec2 texcord;
+		varying vec2 v_texcord;		
+		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!		
+				
+		uniform vec3 transform;
+		uniform vec3 rotation;		
+		
+		uniform vec3 worldLoc;
+		uniform vec3 worldRotation;
+		uniform float n;
+		uniform float f;
+		uniform float r;
+		uniform float t;
+		
+		uniform bool FaceCam;
+		
+		//Lighting
+		varying vec3 fakenormal;
+		varying vec3 v_surfaceToLight;
+		varying vec3 v_surfaceToView;
+		varying vec3 v_spot_surfaceToLight;
+		
+		//Bad guy spotlight location
+		uniform vec3 BadGuyLoc;
+		
+		vec4 MoveCamera(vec4 pos)
+		{
+			vec3 cw = cos(worldRotation);
+			vec3 sw = sin(worldRotation);
+			mat4 translateView = mat4(1.0,0.0,0.0,0.0,
+									  0.0,1.0,0.0,0.0,
+									  0.0,0.0,1.0,0.0,
+									  -1.0*worldLoc.x,-1.0*worldLoc.y,worldLoc.z,1.0
+									);
+						
+			mat4 rotateView = mat4(cw.y,0.0,-1.0*sw.y,0.0,
+									0.0,1.0,0.0,0.0,
+									sw.y,0.0,cw.y,0.0,
+									0.0,0.0,0.0,1.0);
+			return rotateView*translateView*pos;
+		}
+		
+		vec4 ApplyProjection(vec4 pos)
+		{
+			mat4 SimpleOrtho = mat4  (1,0.0,0.0,0.0,
+							 0.0,1,0.0,0.0, 
+							 0.0,0.0,1,0.0, 
+							 0.0,0.0,0.0,1.0);
+
+			mat4 ComplexPerspective = mat4(
+										n/r, 0.0,0.0,0.0,
+										0.0, n/t,0.0,0.0,
+										0.0,0.0,-1.0*(f+n)/(f-n),-1.0,
+										0.0,0.0,-2.0*f*n/(f-n),0.0
+										);
+			mat4 ComplexOrtho = mat4(	1.0/r,0.0,0.0,0.0,
+										0.0,1.0/t,0.0,0.0,	//If I make the y -1.0/t I will invert the Y-axis.
+										0.0,0.0,1.0,0.0,
+										0.0,0.0,0.0,1.0	//If I make the x and y translate -1, -1 I can put 0,0 in the bottom right.
+									);
+									
+			mat4 SimplePerspective = 	mat4(
+								1.0,0.0,0.0,0.0,
+								0.0,1.0,0.0,0.0,
+								0.0,0.0,-1.0,-1.0,
+								0.0,0.0,-2.0,0.0			
+								);
+			return ComplexPerspective*pos;
+		}
+		
+		vec4 PositionObject(vec4 pos)
+		{
+			mat4 translateM = mat4(1.0,0.0,0.0,0.0,
+						   0.0,1.0,0.0,0.0,
+						   0.0,0.0,1.0,0.0,
+						   transform.x,transform.y,transform.z,1.0);
+			return translateM*pos;	
+		}
+		
+		vec4 LookAt(vec3 F, vec3 U, vec4 pos)
+		{
+			//precision mediump float;
+			vec3 R = cross(F,U);
+			mat4 LookAt = mat4(R.x,R.y,R.z,0.0,
+								U.x,U.y,U.z,0.0,
+								F.x,F.y,F.z,0.0,
+								0.0,0.0,0.0,1.0);
+					
+			return LookAt*pos;	
+		}
+		//Use a function to Rotate the object
+		vec4 RotateObject(vec4 pos)
+		{
+			//This is a nice trick
+			vec3 c = cos(rotation);
+			vec3 s = sin(rotation);
+			
+			//Surprise!  we have to go column firt when we enter the matrix.
+
+			//mat4 rotateX = mat4();
+			mat4 rotateY = mat4(c.y,0.0,-1.0*s.y,0.0,
+								0.0,1.0,0.0,0.0,
+								s.y,0.0,c.y,0.0,
+								0.0,0.0,0.0,1.0);
+			//mat4 rotateZ = mat4();
+			return rotateY*pos;
+		}
+		void main()
+		{
+			if(length(a_position)<5.0)
+			{
+			//fakenormal = vec3(a_position);
+			fakenormal = RotateObject(a_position).xyz;
+			}
+			else
+			{
+			//Hanlde the plane.
+			fakenormal = vec3(0.0,1.0,0.0);
+			}
+			vec4 worldSpace = vec4(0.0,0.0,0.0,1.0);
+			if(FaceCam)
+			{
+				vec3 F = normalize(vec3(worldLoc.x,worldLoc.y,-1.0*worldLoc.z)- transform);
+				vec3 U = vec3(0.0,1.0,0.0);
+				worldSpace = PositionObject(LookAt(F,U,a_position));
+			}
+			else
+			{
+				worldSpace = PositionObject(RotateObject(a_position));
+			}
+			//Lighting Stuff
+			v_surfaceToLight = vec3(0.0,0.5,-5.0) - worldSpace.xyz;
+			v_surfaceToView = vec3(worldLoc.x,worldLoc.y,-1.0*worldLoc.z) - worldSpace.xyz;
+
+
+
+			v_spot_surfaceToLight = vec3(5.0,0.0,-2.0) - worldSpace.xyz;	
+			
+			//!!!!!!!!!!!!!!!!!TEXTURE CHANGE
+			//fragColor = vert_color;
+			v_texcord = texcord;
+			//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+			// Lighting we will multiply the lighting into the v_textcord instead of fragColor
+			
+			vec4 cameraSpace = MoveCamera(worldSpace);
+			gl_Position=ApplyProjection(cameraSpace);
+		}		
+		</SCRIPT>
+		<script id="2dFragmentShader" type="notjs">
+		//Fragment shaders do not have precision so we have to set it.
+		precision mediump float;
+		//varying vec3 fragColor;
+		
+		
+		varying vec3 fakenormal;
+		varying vec3 v_surfaceToLight;
+		varying vec3 v_surfaceToView; 
+		varying vec3 v_spot_surfaceToLight;
+		
+		//!!!!!!!!!!!!!!!!Texture change !!!!!!!!!!!!!!!
+		varying vec2 v_texcord;
+		uniform sampler2D sampler;
+		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		
+		void main()
+		{
+			//gl_FragColor = vec4(fragColor,1); //Between 0 and 1.
+			
+			/*float ambient = .3;	
+			
+			//gl_FragColor=vec4(ambient*fragColor,1);
+			float d_light = dot(normalize(fakenormal),normalize(vec3(0.0,0.0,5.0)))*.3;
+			if (d_light <0.0)
+			{
+				d_light = 0.0;
+			}
+			//gl_FragColor = vec4(fragColor*(ambient+d_light),1);
+			float p_light = dot(normalize(fakenormal),normalize(v_surfaceToLight));//*2.0/length(v_surfaceToLight);
+			if(p_light <0.0)
+			{
+				p_light = 0.0;
+			}
+			
+			//For specularity
+			vec3 halfVector = normalize(normalize(v_surfaceToLight)+normalize(v_surfaceToView));
+			float p_specular = 0.0;
+			float Shine = 500.0;
+			if(p_light >0.1)
+			{
+				p_specular = pow(dot(normalize(fakenormal),halfVector),Shine);///length(v_surfaceToLight);
+				if(p_specular <0.01)
+				{
+				p_specular = 0.0;
+				}
+				if(p_specular >1.0)
+				{
+				p_specular = 0.0;
+				}
+				//p_light += p_specular;
+			}
+			
+			gl_FragColor = vec4( fragColor*(p_light+d_light+ambient),1);
+			gl_FragColor.rgb += p_specular*vec3(.8,.8,.8);//+_p2_specular+p3_specular...etc.;//*Specularity Color...
+			
+			/*
+			float spot_light_power =0.0;
+			float spot_light = dot(normalize(v_spot_surfaceToLight),vec3(1,0,0));//- light dir;
+			if(spot_light >= .999)
+			{
+			spot_light_power = dot(normalize(fakenormal),normalize(v_spot_surfaceToLight));
+				if(spot_light_power <0.0)
+				{
+					spot_light_power = 0.0;
+				}
+			}
+			gl_FragColor = vec4(fragColor*(spot_light_power+ambient),1);
+			*/
+			// Pass in the uniform sampler and the v_textcord which will alter
+			// the color the attribute
+			vec4 tempColor = texture2D(sampler,v_texcord);
+			if(tempColor.w<1.0)
+			{
+				// Render or not
+				discard;
+			}
+			// LIGHTNING DONE HERE. In the case that we discard the color
+			// Could set to tempColor. tempColor.xyz would replace the fragColor
+			gl_FragColor = vec4(tempColor.x,tempColor.y,tempColor.z,1); 
+			
+		}
+		</script>
+		
+		<script src="webgl_interface.js"></script>		
+		<script src="BasicGameObject.js"></script>
+		<script>
+			function CreateCheckered()
+			{
+				//Actually get our texture;
+				var myPic = [];
+				for(i =0; i < 16; i ++)
+				{
+					for(j =0; j< 16; j ++)
+					{
+						if(i%2 == j%2)
+						{
+							//Push red
+							myPic.push(255,30,30,255);
+						}
+						else
+						{
+							myPic.push(30,255,30,255);
+						}	
+					}
+				}
+				return myPic;
+			}
+			
+			function CreateBrick()
+			{
+				// Generating the texture manually via a 1-d array
+				// raw 1-d array simply pushing color values
+				var myPic2 = [];
+				for(i =0; i < 16; i ++)
+				{
+					for(j =0; j< 16; j ++)
+					{
+						if(i == 0 || j ==0)
+						{
+							// pushing 4 integers onto the array
+							myPic2.push(0,0,0,255);
+						}
+						else
+						{
+							myPic2.push(255,30,30,255);
+						}		
+					}
+				}
+				return myPic2;
+			}
+		
+			function CreateCrate()
+			{
+				//we want to create a crate with black around the sides
+				//and a black x throug the middle
+				//The rest will be brown.   
+				var myCrate = [];
+				for(i =0; i < 64; i ++)
+				{
+					for(j =0; j< 64; j ++)
+					{
+						if(i ==0 || j == 0 || i == 63 || j ==63 || i == j || 64-j ==i)
+						{
+							myCrate.push(0,0,0,255);
+						}
+						else
+						{
+							myCrate.push(200,128,23,255);
+						}
+					}
+				}
+				return myCrate;
+			}
+			
+		class main
+		{	
+		
+			constructor()
+			{
+			this.Visual = [];
+			this.Solid = [];
+			this.Trigger = [];
+			this.ObjectCounter = 0;			
+
+			this.myWEBGL = new WebGL_Interface();
+			this.myTriangle = [];
+			this.Keys = [];
+			}
+			
+			UpdateAll()
+			{
+				for(var i in this.Visual)
+				{
+					this.Visual[i].Update();
+				}
+				for(var i in this.Solid)
+				{
+					this.Solid[i].Update();
+				}
+				for(var i in this.Trigger)
+				{
+					this.Trigger[i].Update();
+				}
+			
+			}
+			
+			RenderAll()
+			{
+			gl.clear(gl.COLOR_BUFFER_BIT);
+				for(var i in this.Visual)
+				{
+					this.Visual[i].Render(this.myWEBGL.program);
+				}
+				for(var i in this.Solid)
+				{
+					this.Solid[i].Render(this.myWEBGL.program);
+				}
+				for(var i in this.Trigger)
+				{
+					this.Trigger[i].Render(this.myWEBGL.program);
+				}
+			
+			}
+			CheckCollision(loc1,rad1,loc2, rad2)
+			{
+				//Return true if they collide, false if they don't.
+				//You could also pass two objects in as well.
+				return false;
+			}
+			
+			CreateObject(type, prefab, loc, rot)
+			{
+			//type 0 = visual
+			//type 1 = solid
+			//type 2 = trigger
+			var temp = new prefab; //Yes this dark sorcery will work.
+			var id = "ID"+this.ObjectCounter;
+			this.ObjectCounter ++;
+			temp.id = id;
+			temp.prefab = prefab;
+			temp.loc = loc;
+			temp.rot = rot;
+				switch(type)
+				{
+					case 0:
+						this.Visual[id] = temp;
+					break;
+					case 1:
+						this.Solid[id] = temp;
+					break;
+					case 2:
+						this.Trigger[id] = temp;
+					break;
+					default:
+					break;
+				}		
+			//We can return the game object to the calling function
+			//Should the user want to set custom names or properties on it.
+			return temp;
+			}
+			
+			
+			DestroyObject(id)
+			{
+				if(id in this.Visual)
+				{
+					delete this.Visual[id];
+				}
+				if(id in this.Solid)
+				{
+					delete this.Solid[id];
+				}
+
+				if(id in this.Trigger)
+				{
+					delete this.Trigger[id];
+				}
+			}
+			
+			KeyDown(event)
+			{
+				this.Keys[String.fromCharCode(event.keyCode)] = true;
+				console.log(String.fromCharCode(event.keyCode) +" should be true - "+this.Keys[String.fromCharCode(event.keyCode)]);
+			}
+			
+			KeyUp(event)
+			{
+				this.Keys[String.fromCharCode(event.keyCode)] = false;
+				console.log(String.fromCharCode(event.keyCode) +" should be false - "+this.Keys[String.fromCharCode(event.keyCode)]);
+			}
+			
+			MouseClick(event)
+			{
+				var rect = canvas.getBoundingClientRect();
+				var realX = event.clientX - rect.left;
+				var realY = event.clientY - rect.top;
+				console.log(realX+","+realY);
+				var x = -1 + 2*realX/myCanvas.width;
+				var y = -1 + 2*(myCanvas.height - realY)/myCanvas.height;
+				console.log("The click occurred on "+x+","+y);
+			}
+
+			
+			//Static call backs go down here
+			//   |
+			//  \ /
+			//   v
+			static keyD(event)
+			{
+				m.KeyDown(event);
+			}
+			static keyU(event)
+			{
+				m.KeyUp(event);
+			}
+
+			static mouseH(event)
+			{
+				m.MouseClick(event);
+			}
+			
+			static MainLoop()
+			{
+				m.UpdateAll();
+				m.RenderAll();
+				requestAnimationFrame(main.MainLoop);
+			}
+
+		}
+		
+		
+		</script>
+		
+		
+
+	</Head>
+	<BODY style="padding: 15px;">
+		<HEADER>
+		
+		</HEADER>
+		
+		<CANVAS id="myCanvas" width="640" height="400" style = "border: 1px solid #000;">
+			Your browser does not support canvas.
+		</CANVAS>
+		
+		<button id="myB">Clear Canvas</button>
+		
+		<SCRIPT>
+			var canvas = document.getElementById("myCanvas");
+			var gl = canvas.getContext("webgl");
+			var m = new main();
+			window.onkeydown = main.keyD;
+			window.onkeyup = main.keyU;
+			canvas.addEventListener("click",main.mouseH);
+			
+			//!!!!!!!!!!!!!!!!!!!!!!!TEXTURE CHANGE!!!!!!!!!!!!!!!!!!!!
+			/*for(var i =-10; i <=20; i ++)
+			{
+				for(var j =-10; j < 20; j ++)
+				{
+					m.CreateObject(2, D4, [j,i,-25],[0,0,0]);
+				}
+			}*/
+			m.CreateObject(2,Camera,[0,0,0],[0,0,0]);
+			
+			m.CreateObject(2,Hex,[0,0,-2],[0,0,0]);
+			m.CreateObject(2,Hex,[3,0,-2],[0,0,0]);
+			m.CreateObject(2,Hex,[-3,0,-2],[0,0,0]);
+			m.CreateObject(2,Hex,[-20,0,-8],[0,0,0]);
+			
+			m.CreateObject(2,Ground,[0,-1,0],[0,0,0]);
+			
+			m.CreateObject(2,Quad,[2,0,0], [0,0,0]);
+			
+			requestAnimationFrame(main.MainLoop);	
+			
+			
+		</SCRIPT>
+		
+		<FOOTER>
+		
+		</FOOTER>
+
+		
+	</BODY>
+	
+</HTML>
+		
+		
