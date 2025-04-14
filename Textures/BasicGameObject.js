@@ -140,6 +140,11 @@ class Ground extends GameObject
 		//We only want to do this once.
 		//void gl.texImage2D(target, level, internalformat, width, height, border, format, 
 		//type, ArrayBufferView? pixels);
+
+		// Loading the texture into an unsigned integer byte array. Only need to buffer once
+		// Can have different buffers to hold different images
+		// That way we buffer them once and can switch every number of frames
+		// In this example this image is 16 x 16 pixels
 		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,16,16,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.picture));
 	
 		// Buffering of the data is the same as before. Different buffers for different things
@@ -160,7 +165,7 @@ class Ground extends GameObject
 		var type = gl.FLOAT;   // the data is 32bit floats
 		var normalize = false; // don't normalize the data
 		
-		//MAKE SURE YOU CHANGE THIS TO 5 FOR TEXTURES
+		//MAKE SURE YOU CHANGE THIS TO 5 FOR TEXTURES This is because rgb st
 		var stride = 5*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element     // 0 = move forward size * sizeof(type) each iteration to get the next position
 		var offset = 0;        // start at the beginning of the buffer
 		gl.enableVertexAttribArray(positionAttributeLocation);
@@ -169,19 +174,22 @@ class Ground extends GameObject
 		
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!TEXTURE CHANGE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		//Now we have to do this for color
+		// No vert_color, now its texcord
 		var TexAttributeLocation = gl.getAttribLocation(program,"texcord");
 		//We don't have to bind because we already have the correct buffer bound.
 		size = 2;
 		type = gl.FLOAT;
 		normalize = false;
 		stride = 5*Float32Array.BYTES_PER_ELEMENT;	//Size in bytes of each element
-		offset = 3*Float32Array.BYTES_PER_ELEMENT;									//size of the offset
+		offset = 3*Float32Array.BYTES_PER_ELEMENT;	//size of the offset skipping xyz
 		gl.enableVertexAttribArray(TexAttributeLocation);
 		gl.vertexAttribPointer(TexAttributeLocation, size, type, normalize, stride, offset);
 				
+		// Can switch between solid colors and textures with a boolean
+		// This is where we set the text parameters/ primitive texture types
 		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
 		//setup S
-		gl.texParameteri(gl.TEXTURE_2D,	gl.TEXTURE_WRAP_S,gl.REPEAT); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE
+		gl.texParameteri(gl.TEXTURE_2D,	gl.TEXTURE_WRAP_S,gl.REPEAT); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE gl.REPEAT
 		//Sets up our T
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE                   
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.NEAREST);
