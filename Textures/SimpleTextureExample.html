@@ -26,6 +26,9 @@
 		//varying vec3 fragColor;
 		//WE need to add varying and attributes for the texture vertex.
 		// Just like in colors 
+		
+		// We need to read the texture coordinates first and then pass them over to the
+		// vertex shader using the varying
 		attribute vec2 texcord;
 		varying vec2 v_texcord;		
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!		
@@ -147,6 +150,9 @@
 			fakenormal = vec3(0.0,1.0,0.0);
 			}
 			vec4 worldSpace = vec4(0.0,0.0,0.0,1.0);
+			
+			// Going off of a simple bool uniform thats set by the object that wants
+			// to be billboarded
 			if(FaceCam)
 			{
 				// Look at rotation
@@ -169,6 +175,7 @@
 			
 			//!!!!!!!!!!!!!!!!!TEXTURE CHANGE
 			//fragColor = vert_color;
+			// Passing over the texture coordinates over to the varying
 			v_texcord = texcord;
 			//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -190,15 +197,16 @@
 		varying vec3 v_spot_surfaceToLight;
 		
 		//!!!!!!!!!!!!!!!!Texture change !!!!!!!!!!!!!!!
-		varying vec2 v_texcord;
-		uniform sampler2D sampler;
+		varying vec2 v_texcord;		// Texture coordinates
+		uniform sampler2D sampler;	// The texture itself
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		
 		void main()
 		{
 			//gl_FragColor = vec4(fragColor,1); //Between 0 and 1.
 			
-			/*float ambient = .3;	
+			/*
+			float ambient = .3;	
 			
 			//gl_FragColor=vec4(ambient*fragColor,1);
 			float d_light = dot(normalize(fakenormal),normalize(vec3(0.0,0.0,5.0)))*.3;
@@ -249,7 +257,9 @@
 			*/
 			// Pass in the uniform sampler and the v_textcord which will alter
 			// the color the attribute
+			// We could also simply pass texture2D over to gl_FragColor
 			vec4 tempColor = texture2D(sampler,v_texcord);
+			// Applying transparency filter
 			if(tempColor.w<1.0)
 			{
 				// Render or not
@@ -322,10 +332,12 @@
 					{
 						if(i ==0 || j == 0 || i == 63 || j ==63 || i == j || 64-j ==i)
 						{
+							// Black
 							myCrate.push(0,0,0,255);
 						}
 						else
 						{
+							// Brown
 							myCrate.push(200,128,23,255);
 						}
 					}

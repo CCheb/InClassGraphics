@@ -133,6 +133,7 @@ class Ground extends GameObject
 			1000, 0,1000,   100,100	
 		];
 		
+		// Same methodologies as when creating a vertex or color buffer
 		// officially creating a texture
 		this.MyTexture = gl.createTexture();
 		// gl.TEXTURE_2D is the global reference point similar to gl.ARRAY_BUFFER
@@ -194,7 +195,7 @@ class Ground extends GameObject
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE                   
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);			
-				
+		gl.generateMipmap(gl.TEXTURE_2D);
 				
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		
@@ -388,7 +389,17 @@ class Quad extends GameObject
 		this.MyTexture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
 		//We only want to do this once.
-		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,64,64,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(this.MyPicture));
+		// this.MyPicture
+		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
+
+		var image = new Image();
+		image.src = "./character.png";
+		image.addEventListener('load', () => {
+			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+						  gl.UNSIGNED_BYTE, image);
+			gl.generateMipmap(gl.TEXTURE_2D);
+		  });
 		
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	
