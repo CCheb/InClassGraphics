@@ -53,6 +53,7 @@
 		
 		vec4 MoveCamera(vec4 pos)
 		{
+			// Could change the 1 over the z to -1
 			vec3 cw = cos(worldRotation);
 			vec3 sw = sin(worldRotation);
 			mat4 translateView = mat4(1.0,0.0,0.0,0.0,
@@ -148,12 +149,14 @@
 			vec4 worldSpace = vec4(0.0,0.0,0.0,1.0);
 			if(FaceCam)
 			{
+				// Look at rotation
 				vec3 F = normalize(vec3(worldLoc.x,worldLoc.y,-1.0*worldLoc.z)- transform);
 				vec3 U = vec3(0.0,1.0,0.0);
 				worldSpace = PositionObject(LookAt(F,U,a_position));
 			}
 			else
 			{
+				// Normal rotation 
 				worldSpace = PositionObject(RotateObject(a_position));
 			}
 			//Lighting Stuff

@@ -372,6 +372,7 @@ class Quad extends GameObject
 		
 		
 		//!!!!!!!!!!!!!!!!!Changes due to texture
+		// Here we can change the texture for the object
 		this.MyPicture = CreateCrate();
 
 		//Get vertices from announcements
@@ -439,6 +440,7 @@ class Quad extends GameObject
 		var thetaLoc = gl.getUniformLocation(program,'rotation');
 		gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
 	 
+		// To enable the look at matrix only for the billboard
 		var FaceCamLoc = gl.getUniformLocation(program,'FaceCam');
 		gl.uniform1i(FaceCamLoc,true);
 	 
