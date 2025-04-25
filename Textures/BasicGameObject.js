@@ -367,6 +367,7 @@ class Quad extends GameObject
 		this.angVelocity = [0,0,0];
 		this.isTrigger = false;
 		this.buffer=gl.createBuffer();
+		this.count = 0;
 
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
@@ -380,10 +381,10 @@ class Quad extends GameObject
 		this.vertices =
 		[
 			//X 	Y 	Z   S   T
-			-1,		-1,	0, 0,   1,
-			1,		-1, 0, 1,   1,
-			-1,      1, 0, 0,   0,
-			1,		1,  0, 1,   0
+			-1,		-1,	0, 1,   1,
+			1,		-1, 0, 0,   1,
+			-1,      1, 0, 1,   0,
+			1,		1,  0, 0,   0
 		];
 		
 		this.MyTexture = gl.createTexture();
@@ -392,15 +393,20 @@ class Quad extends GameObject
 		// this.MyPicture
 		gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0, 0, 255, 255]));
 
-		var image = new Image();
-		image.src = "./character.png";
-		image.addEventListener('load', () => {
+		this.image = new Image();
+		this.image.src = "./imps.png";
+
+		// We have to wait until the image fully loads before we can work with it
+		// If we dont do this we run the chance of running into errors.
+		this.image.addEventListener('load', () => {
 			gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-						  gl.UNSIGNED_BYTE, image);
-			gl.generateMipmap(gl.TEXTURE_2D);
-		  });
-		
+				gl.UNSIGNED_BYTE, this.image);
+				//gl.generateMipmap(gl.TEXTURE_2D);
+			});
+			
+		this.image2 = new Image();
+		this.image2.src = "./character.png";
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
@@ -409,6 +415,26 @@ class Quad extends GameObject
 	}
 	Update()
 	{
+		this.count++;
+
+		if(this.count == 60)
+		{
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image2);
+		}
+		if(this.count == 120)
+		{
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+				gl.UNSIGNED_BYTE, this.image);
+
+			this.count = 0;
+
+		}
+		
+			
+
+
+
 		this.Move();
 	}
 	Render(program)
@@ -439,9 +465,9 @@ class Quad extends GameObject
 				
 		gl.bindTexture(gl.TEXTURE_2D, this.MyTexture);
 		//setup S
-		gl.texParameteri(gl.TEXTURE_2D,	gl.TEXTURE_WRAP_S,gl.REPEAT); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE
+		gl.texParameteri(gl.TEXTURE_2D,	gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE
 		//Sets up our T
-		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE                   
+		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE); //gl.MIRRORED_REPEAT//gl.CLAMP_TO_EDGE                   
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);					
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -450,6 +476,10 @@ class Quad extends GameObject
 		gl.uniform3fv(tranLoc,new Float32Array(this.loc));
 		var thetaLoc = gl.getUniformLocation(program,'rotation');
 		gl.uniform3fv(thetaLoc,new Float32Array(this.rot));
+
+		
+
+		
 	 
 		// To enable the look at matrix only for the billboard
 		var FaceCamLoc = gl.getUniformLocation(program,'FaceCam');

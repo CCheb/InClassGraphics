@@ -31,10 +31,15 @@
 		// vertex shader using the varying
 		attribute vec2 texcord;
 		varying vec2 v_texcord;		
+
+		
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!		
 				
 		uniform vec3 transform;
 		uniform vec3 rotation;		
+
+
+		
 		
 		uniform vec3 worldLoc;
 		uniform vec3 worldRotation;
@@ -44,6 +49,10 @@
 		uniform float t;
 		
 		uniform bool FaceCam;
+		uniform vec2 u_frameScales;
+		uniform vec2 u_frameOffset;
+
+		
 		
 		//Lighting
 		varying vec3 fakenormal;
@@ -139,6 +148,7 @@
 		}
 		void main()
 		{
+			
 			if(length(a_position)<5.0)
 			{
 			//fakenormal = vec3(a_position);
@@ -173,10 +183,16 @@
 
 			v_spot_surfaceToLight = vec3(5.0,0.0,-2.0) - worldSpace.xyz;	
 			
+			float scale = u_frameScales.x;
+			float offset = u_frameOffset.x;
 			//!!!!!!!!!!!!!!!!!TEXTURE CHANGE
 			//fragColor = vert_color;
 			// Passing over the texture coordinates over to the varying
+			//texcord = texcord * frameScale + frameOffset;
+			//v_texcord = texcord * vec2(1.0,1.0) + vec2(0.0,0.0);
+			//vec2 cord = texcord * u_frameScales + u_frameOffset;
 			v_texcord = texcord;
+			//v_texcord = cord;
 			//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 			// Lighting we will multiply the lighting into the v_textcord instead of fragColor
@@ -200,6 +216,8 @@
 		varying vec2 v_texcord;		// Texture coordinates
 		uniform sampler2D sampler;	// The texture itself
 		//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+		
 		
 		void main()
 		{
@@ -258,6 +276,7 @@
 			// Pass in the uniform sampler and the v_textcord which will alter
 			// the color the attribute
 			// We could also simply pass texture2D over to gl_FragColor
+			// vec2 new = v_textcord *u_frameScales + u_frameOffset;
 			vec4 tempColor = texture2D(sampler,v_texcord);
 			// Applying transparency filter
 			if(tempColor.w<1.0)
@@ -268,6 +287,8 @@
 			// LIGHTNING DONE HERE. In the case that we discard the color
 			// Could set to tempColor. tempColor.xyz would replace the fragColor
 			gl_FragColor = vec4(tempColor.x,tempColor.y,tempColor.z,1); 
+			
+			
 			
 		}
 		</script>
@@ -347,6 +368,7 @@
 			
 		class main
 		{	
+			
 		
 			constructor()
 			{
@@ -358,6 +380,11 @@
 			this.myWEBGL = new WebGL_Interface();
 			this.myTriangle = [];
 			this.Keys = [];
+
+
+			
+
+
 			}
 			
 			UpdateAll()

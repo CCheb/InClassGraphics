@@ -19,6 +19,12 @@
 				gl.enable(gl.DEPTH_TEST);
 				
 				gl.useProgram(this.program);
+
+				var frameScaleLoc = gl.getUniformLocation(this.program,'u_frameScales');
+				gl.uniform2fv(frameScaleLoc,new Float32Array([1.0,1.0]));
+
+				var offsets = gl.getUniformLocation(this.program,'u_frameOffset');
+				gl.uniform2fv(offsets,new Float32Array([0.0,0.0]));
 				
 				var camLoc  = gl.getUniformLocation(this.program,'worldLoc');
 				gl.uniform3fv(camLoc,new Float32Array([0,0,0]));
@@ -34,6 +40,7 @@
 				tempLoc = gl.getUniformLocation(this.program,'t');
 				gl.uniform1f(tempLoc,.06);
 
+				
 				
 			}
 			
